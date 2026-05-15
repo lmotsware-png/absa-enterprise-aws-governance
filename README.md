@@ -1,3 +1,5 @@
+![AWS Certified](https://img.shields.io/badge/AWS-Certified%20Solutions%20Architect%20Associate-orange)
+
 # ABSA Enterprise AWS - Governance Layer (Week 1)
 
 [![Terraform](https://img.shields.io/badge/terraform-1.5+-blue)](https://www.terraform.io)
