@@ -1,12 +1,3 @@
-Your README is already strong because it does something most beginners never do:
-
-* explains the business purpose
-* explains the risk
-* explains the architecture mindset
-* warns people before deployment
-* proves real deployment experience
-
-
 
 # 🏦 ABSA Enterprise AWS Landing Zone
 
