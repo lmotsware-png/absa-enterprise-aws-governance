@@ -1,17 +1,18 @@
 
+
+---
+
 # 🏦 ABSA Enterprise AWS Landing Zone
 
-### Enterprise Multi-Account AWS Architecture with Terraform
+### Enterprise Multi-Account AWS Platform Architecture with Terraform
 
-**AWS | Terraform | Networking | Security | Governance | Infrastructure as Code**
+**AWS | Terraform | Enterprise Networking | Security | Governance | Infrastructure as Code**
 
-![AWS](https://img.shields.io/badge/AWS-Enterprise_Ready-FF9900?style=for-the-badge&logo=amazonaws)
-![Terraform](https://img.shields.io/badge/Terraform-1.8+-623CE4?style=for-the-badge&logo=terraform)
+![AWS](https://img.shields.io/badge/AWS-Enterprise_Ready-FF9900?style=for-the-badge\&logo=amazonaws)
+![Terraform](https://img.shields.io/badge/Terraform-1.8+-623CE4?style=for-the-badge\&logo=terraform)
+![Architecture](https://img.shields.io/badge/Architecture-Multi_Account-blue?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Week_2_Complete-2ea44f?style=for-the-badge)
-![Security](https://img.shields.io/badge/Security-PCI_DSS_Ready-2ea44f?style=for-the-badge)![AWS](https://img.shields.io/badge/AWS-Cloud-orange)
-![Terraform](https://img.shields.io/badge/Terraform-IaC-purple)
-![Status](https://img.shields.io/badge/Status-In%20Progress-green)
-![Security](https://img.shields.io/badge/Security-Enterprise-blue)
+![Security](https://img.shields.io/badge/Security-PCI_DSS_Aligned-success?style=for-the-badge)
 
 ---
 
@@ -19,83 +20,210 @@
 
 This project simulates a real-world enterprise AWS banking environment for a fictional ABSA financial organization.
 
-The goal is to design and deploy a secure, scalable, multi-account AWS landing zone using Terraform while applying real enterprise networking, governance, and cloud security principles.
+The objective is to design and deploy a secure, scalable, multi-account AWS landing zone using Terraform while applying enterprise cloud architecture, networking, governance, and security principles.
 
-This is not a simple certification lab.
+This is not a basic certification lab.
 
-The project focuses on:
+The project focuses on how enterprise organizations actually build cloud infrastructure at scale.
 
-* Enterprise networking
-* Multi-VPC architecture
-* AWS Organizations governance
-* Transit Gateway routing
-* VPC endpoints
-* Security segmentation
-* PCI-DSS style isolation
-* Infrastructure as Code (IaC)
-* Cloud architecture thinking
+---
+
+# 🏗️ Enterprise Architecture Scope
+
+```text
+absa-enterprise-aws/
+│
+├── 01-governance/
+│   AWS Organizations, OUs, SCPs
+│
+├── 02-networking/
+│   Transit Gateway, Multi-VPC Architecture, Endpoints
+│
+├── 03-security/
+│   IAM, KMS, GuardDuty, Security Hub
+│
+├── 04-shared-services/
+│   CloudTrail, Config, Monitoring
+│
+├── 05-production/
+│   EKS, RDS, Redis, API Gateway
+│
+├── 06-data-platform/
+│   Kinesis, Redshift, Athena, OpenSearch
+│
+├── 07-messaging/
+│   SQS, SNS, Amazon MQ
+│
+├── 08-disaster-recovery/
+│   Cross-Region Warm Standby
+│
+└── 09-devops/
+    CI/CD, ECR, CodePipeline, CodeBuild
+```
 
 ---
 
 # 🧠 Why This Project Exists
 
-Most cloud labs teach:
+Most cloud labs focus on:
 
-* how to launch EC2
-* how to click services
-* how to pass exams
+* launching EC2 instances
+* basic AWS services
+* passing certification exams
 
 This project focuses on:
 
-* how enterprises actually build AWS environments
-* how networking decisions affect architecture
-* how routing, segmentation, DNS, NAT, endpoints, and security integrate together
-* how Terraform scales infrastructure across environments
+* enterprise cloud architecture
+* infrastructure dependency design
+* routing and segmentation
+* security-first networking
+* governance at scale
+* private AWS connectivity
+* Terraform automation patterns
+* operational cloud engineering
 
-The deeper I went into this project, the more I realized:
+The deeper I progressed into the project, the more I realized:
 
-> Cloud architecture without networking knowledge becomes very limited.
+> Cloud architecture without networking knowledge becomes extremely limited.
 
 Understanding:
 
+* CIDR planning
 * subnetting
-* CIDR calculations
 * routing
+* NAT architecture
 * DNS
-* NAT
-* private connectivity
 * TLS
-* segmentation
 * Transit Gateway propagation
+* VPC endpoints
+* private AWS backbone connectivity
 
-became essential to understanding enterprise AWS design.
-
----
-
-# 🏗️ Architecture Goals
-
-✅ Multi-account AWS Organization
-✅ Centralized governance
-✅ Shared services model
-✅ Transit Gateway hub-and-spoke networking
-✅ Production / HR / Finance isolation
-✅ Private AWS service access using VPC Endpoints
-✅ High availability across 3 Availability Zones
-✅ Terraform automation and reusable design patterns
-✅ Security-first architecture approach
+became essential to understanding how enterprise AWS environments actually operate.
 
 ---
 
-# 📅 Project Timeline
+# 🌐 Enterprise Networking Architecture
 
-| Week   | Focus                                    |
-| ------ | ---------------------------------------- |
-| Week 1 | AWS Organizations & Governance           |
-| Week 2 | Multi-VPC Networking & VPC Endpoints     |
-| Week 3 | EKS & Container Architecture             |
-| Week 4 | CI/CD & DevOps Automation                |
-| Week 5 | Monitoring, Logging & Security           |
-| Week 6 | Disaster Recovery & Production Hardening |
+## Multi-VPC Design
+
+The environment is segmented into dedicated VPCs:
+
+* Production VPC
+* HR VPC
+* Finance VPC
+* DevOps VPC
+* Staging VPC
+* QA VPC
+
+Each VPC contains:
+
+* Public subnet tier
+* Application subnet tier
+* Data subnet tier
+* Dedicated VPC endpoint subnet tier
+
+---
+
+# 🔀 Transit Gateway Architecture
+
+The networking layer uses a hub-and-spoke Transit Gateway architecture.
+
+Key concepts implemented:
+
+* Segmented TGW route tables
+* Explicit route propagation
+* Explicit route associations
+* Controlled east-west traffic
+* Shared services routing
+* Finance and HR isolation
+* Manual propagation control
+
+Traffic between business units is intentionally restricted.
+
+Example:
+
+* Production can access shared services
+* HR can access shared services
+* Finance can access shared services
+* HR cannot directly access Production
+* Finance cannot directly access Production
+
+This simulates PCI-DSS style network segmentation patterns.
+
+---
+
+# 🔐 Private AWS Connectivity
+
+The environment uses both:
+
+* Gateway VPC Endpoints
+* Interface VPC Endpoints
+
+to ensure workloads communicate with AWS services privately through the AWS backbone network instead of traversing the public internet.
+
+Implemented endpoints include:
+
+* S3
+* DynamoDB
+* CloudWatch Logs
+* ECR API
+* ECR Docker Registry
+* Secrets Manager
+* STS
+* SQS
+* SNS
+* Kinesis Streams
+* Kinesis Firehose
+
+This architecture reinforces:
+
+* reduced internet exposure
+* private service communication
+* lower attack surface
+* enterprise-grade connectivity patterns
+
+---
+
+# 🛡️ Security Architecture
+
+## Security Principles
+
+* Least privilege routing
+* Network segmentation
+* Private-only data tier
+* Centralized governance
+* Immutable logging
+* TLS-encrypted service communication
+* Explicit route control
+* Security-first subnet design
+
+---
+
+# 🔒 Security Controls Implemented
+
+| Control                | Purpose                          |
+| ---------------------- | -------------------------------- |
+| SCP Restrictions       | Prevent unauthorized actions     |
+| CloudTrail Protection  | Prevent audit log deletion       |
+| Encryption Enforcement | Secure storage and communication |
+| Segmented Route Tables | Control east-west traffic        |
+| NAT Isolation          | Controlled outbound access       |
+| Interface Endpoints    | Private AWS service access       |
+| Dedicated Data Subnets | Isolate sensitive workloads      |
+| Security Groups        | Restrict inbound communication   |
+
+---
+
+# 📅 6-Week Enterprise Build Plan
+
+| Week   | Focus Area                            |
+| ------ | ------------------------------------- |
+| Week 1 | Governance & AWS Organizations        |
+| Week 2 | Enterprise Networking & VPC Endpoints |
+| Week 3 | Security Architecture & IAM           |
+| Week 4 | Production Platform & EKS             |
+| Week 5 | Data Platform & Analytics             |
+| Week 6 | Disaster Recovery & DevOps Automation |
 
 ---
 
@@ -105,18 +233,18 @@ became essential to understanding enterprise AWS design.
 
 * AWS Organizations
 * Organizational Units (OUs)
-* SCPs (Service Control Policies)
-* Log Archive Account
-* Audit Account
-* Security boundaries
-* Terraform remote state strategy
+* Service Control Policies (SCPs)
+* Audit account
+* Log archive account
+* Governance boundaries
+* Remote Terraform state strategy
 
 ## Key Learning Areas
 
-* Enterprise governance
+* Multi-account architecture
 * SCP enforcement
-* Multi-account strategy
-* AWS Organizations design
+* Enterprise governance
+* Organizational design patterns
 
 ---
 
@@ -126,133 +254,69 @@ became essential to understanding enterprise AWS design.
 
 * Multi-VPC architecture
 * Transit Gateway
-* TGW route segmentation
-* Public / Private / Data subnet tiers
+* TGW segmented routing
+* Public/Application/Data subnet tiers
 * NAT Gateways
-* Route Tables
-* Route Propagation
-* Route Associations
+* Route tables
+* Route propagation
+* Route associations
 * Interface VPC Endpoints
 * Gateway VPC Endpoints
-* Private AWS service access
-* CloudWatch private connectivity
-* Secrets Manager endpoints
-* ECR private image pulls
+* Private AWS service connectivity
+* CloudWatch private logging access
+* ECR private image pull architecture
+* Secrets Manager private access
 
 ## Key Learning Areas
 
-* Enterprise routing design
+* Enterprise routing strategy
 * Network segmentation
-* VPC endpoint architecture
-* AWS private backbone networking
-* DNS and private service discovery
-* Infrastructure scaling with Terraform loops
-
----
-
-# 🌐 Current Enterprise Network Design
-
-## VPCs
-
-* Production VPC
-* HR VPC
-* Finance VPC
-* DevOps VPC
-* Staging VPC
-* QA VPC
-
-## Networking Components
-
-* Transit Gateway
-* TGW Route Tables
-* Internet Gateway
-* NAT Gateway
-* Route Tables
-* Route Propagation
-* Route Associations
-* VPC Endpoints
-* Interface ENIs
-* Security Groups
-
----
-
-# 🔐 Security Architecture
-
-## Security Controls
-
-* Least privilege routing
-* Segmented route tables
-* No internet access for data tiers
-* Private AWS service connectivity
-* TLS encrypted traffic
-* Security Group restrictions
-* Centralized logging strategy
-
-## Compliance Concepts
-
-* PCI-DSS inspired segmentation
-* Controlled east-west traffic
-* Restricted finance access
-* Shared services isolation
-
----
-
-# ⚠️ IMPORTANT — Before Deployment
-
-This project was deployed successfully in a live AWS environment on:
-📅 May 14, 2026
-
-The example email addresses are fictional.
-
-You MUST replace them with email addresses you control.
-
-## ❌ Do NOT Deploy With Example Emails
-
-If you deploy using emails you do not own:
-
-* you cannot recover root access
-* you cannot add billing methods
-* accounts become trapped in the organization
-* AWS Support intervention may be required
-
-## ✅ Recommended Approach
-
-Use Gmail plus addressing:
-
-```terraform
-log_archive_email = "yourname+log@gmail.com"
-audit_email       = "yourname+audit@gmail.com"
-```
+* AWS backbone networking
+* Private DNS resolution
+* Interface ENI architecture
+* Terraform scaling with loops and dynamic logic
 
 ---
 
 # 🚀 Technologies Used
 
-* Terraform
+## Cloud & Infrastructure
+
 * AWS Organizations
 * AWS Transit Gateway
 * VPC Endpoints
-* AWS RAM
+* Route Tables
+* NAT Gateways
+* Internet Gateways
+* Security Groups
 * IAM
 * CloudWatch
 * ECR
 * S3
 * DynamoDB
 * Kinesis
-* Security Groups
-* Route Tables
+
+## Infrastructure as Code
+
+* Terraform
+* Variables
+* Locals
+* for_each loops
+* count meta-arguments
+* dynamic blocks
+* reusable architecture patterns
 
 ---
 
 # 📚 Skills Developed
 
-## Cloud
+## Cloud Engineering
 
 * AWS Architecture
 * Enterprise Networking
-* Infrastructure as Code
-* Security Design
 * Multi-account governance
+* Infrastructure as Code
+* Security architecture
 
 ## Networking
 
@@ -262,14 +326,41 @@ audit_email       = "yourname+audit@gmail.com"
 * NAT architecture
 * Private connectivity
 * DNS architecture
+* Transit Gateway segmentation
 
-## DevOps
+## DevOps & Automation
 
 * Terraform automation
-* Reusable modules
-* Variables & locals
-* for_each loops
-* dynamic blocks
+* Reusable code design
+* Infrastructure scaling patterns
+* Dynamic Terraform logic
+* Enterprise IaC structuring
+
+---
+
+# ⚠️ IMPORTANT — Before Deployment
+
+This project was successfully deployed in a live AWS environment on:
+
+📅 May 14, 2026
+
+The example email addresses used in the Terraform configuration are fictional and MUST be replaced with email addresses you control.
+
+## ❌ Do NOT Deploy With Example Emails
+
+Deploying with email addresses you do not own may result in:
+
+* loss of root account access
+* inability to configure billing
+* locked organization accounts
+* AWS Support recovery intervention
+
+## ✅ Recommended Approach
+
+```terraform
+log_archive_email = "yourname+log@gmail.com"
+audit_email       = "yourname+audit@gmail.com"
+```
 
 ---
 
@@ -279,15 +370,42 @@ This project is helping me bridge the gap between:
 
 * traditional networking
 * cloud architecture
-* automation engineering
+* infrastructure automation
+* enterprise security
+* platform engineering
 
-I’m documenting the entire journey publicly while learning enterprise AWS architecture deeply from the networking layer upward.
+I am documenting the entire journey publicly while learning enterprise AWS architecture from the networking layer upward.
+
+The goal is not only to understand AWS services, but to understand:
+
+* why enterprise systems are designed this way
+* how infrastructure dependencies connect
+* how networking impacts architecture
+* how security integrates into cloud operations
 
 ---
 
-# 📌 Author
+# 👨‍💻 Author
 
-Lerato Motsware
-AWS • Networking • Terraform • Cloud Infrastructure
+## Lerato Motsware
 
-Building enterprise-grade cloud architecture one layer at a time.
+**AWS | Terraform | Networking | Cloud Infrastructure**
+
+National Diploma in Electrical Engineering (Light Current) with experience supporting mission-critical networking and communication infrastructure.
+
+Focused on:
+
+* Cloud Infrastructure Engineering
+* Enterprise Networking
+* Platform Engineering
+* DevOps Automation
+* AWS Architecture
+* Infrastructure Security
+
+---
+
+# 📌 Repository Status
+
+✅ Week 1 Complete — Governance Layer
+✅ Week 2 Complete — Enterprise Networking
+🚧 Week 3 In Progress — Security Architecture
