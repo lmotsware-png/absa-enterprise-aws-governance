@@ -1,37 +1,37 @@
-![AWS Certified](https://img.shields.io/badge/AWS-Certified%20Solutions%20Architect%20Associate-orange)
+# 🏦 ABSA Enterprise AWS Landing Zone
 
-# ABSA Enterprise AWS - Governance Layer (Week 1)
+### Enterprise Multi-Account AWS Architecture with Terraform
 
-[![Terraform](https://img.shields.io/badge/terraform-1.5+-blue)](https://www.terraform.io)
-[![AWS](https://img.shields.io/badge/AWS-Organizations-orange)](https://aws.amazon.com/organizations/)
-[![Deployed](https://img.shields.io/badge/deployed-May%202026-green)](https://github.com/lmotsware-png/absa-enterprise-aws-governance)
-[![SCPs](https://img.shields.io/badge/SCPs-4-red)](https://aws.amazon.com/organizations/scp/)
+**AWS | Terraform | Networking | Security | Governance | Infrastructure as Code**
 
-## 🏦 Project Overview
+![AWS](https://img.shields.io/badge/AWS-Enterprise_Ready-FF9900?style=for-the-badge&logo=amazonaws)
+![Terraform](https://img.shields.io/badge/Terraform-1.8+-623CE4?style=for-the-badge&logo=terraform)
+![Security](https://img.shields.io/badge/Security-PCI_DSS_Ready-2ea44f?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Week_2_Complete-2ea44f?style=for-the-badge)
+![Networking](https://img.shields.io/badge/Networking-Transit_Gateway-FF9900?style=for-the-badge)
 
-This is **Week 1 of a 6-week enterprise AWS Landing Zone deployment** for a fictional ABSA banking environment. This Terraform configuration establishes the foundation of AWS Organizations with proper governance, security controls, and multi-account strategy.
+---
 
-**✅ Tested and deployed to live AWS environment on May 14, 2026**
+## 📌 Project Overview
 
-## ⚠️ CRITICAL: Before You Deploy — Read This First
+This project simulates a real-world enterprise AWS banking environment for a fictional ABSA financial organization.
 
-This code was **tested and deployed to a live AWS environment on May 14, 2026**. The deployment was successful.
+The goal is to design and deploy a secure, scalable, multi-account AWS landing zone using Terraform while applying real enterprise networking, governance, and cloud security principles.
 
-### 1. Email Addresses — The Most Important Thing
+**This is not a simple certification lab.**
 
-The emails in this configuration (`@absa.co.za`) are **demonstration examples** modeled after a fictional ABSA bank scenario. I do not control the `absa.co.za` domain.
+The project focuses on:
 
-**YOU MUST CHANGE THESE EMAILS** to ones you personally control before deploying.
+- Enterprise networking
+- Multi-VPC architecture
+- AWS Organizations governance
+- Transit Gateway routing
+- VPC endpoints
+- Security segmentation
+- PCI-DSS style isolation
+- Infrastructure as Code (IaC)
+- Cloud architecture thinking
 
-If you deploy with emails you don't control:
-- You **cannot** recover root user access to the member accounts
-- You **cannot** sign in to add a payment method
-- You **cannot** leave the AWS Organization from those accounts
-- You **will** need AWS Support to manually intervene (takes hours)
-- The accounts become **stuck** in your organization for 90 days
+---
 
-**✅ Do this instead:**
-```hcl
-# Use Gmail plus addressing or your own domain
-log_archive_email = "yourname+log@gmail.com"
-audit_email       = "yourname+audit@gmail.com"
+## 🗺️ Current Architecture
