@@ -6,18 +6,7 @@ Your README is already strong because it does something most beginners never do:
 * warns people before deployment
 * proves real deployment experience
 
-That already separates you from people who only paste Terraform code from tutorials.
 
-What you need now is:
-
-1. better structure
-2. stronger professional branding
-3. architecture language
-4. recruiter-friendly formatting
-5. GitHub readability
-6. clearer “why this matters”
-
-This is the direction I would take it:
 
 # 🏦 ABSA Enterprise AWS Landing Zone
 
