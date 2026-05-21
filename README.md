@@ -5,7 +5,10 @@
 
 **AWS | Terraform | Networking | Security | Governance | Infrastructure as Code**
 
-![AWS](https://img.shields.io/badge/AWS-Cloud-orange)
+![AWS](https://img.shields.io/badge/AWS-Enterprise_Ready-FF9900?style=for-the-badge&logo=amazonaws)
+![Terraform](https://img.shields.io/badge/Terraform-1.8+-623CE4?style=for-the-badge&logo=terraform)
+![Status](https://img.shields.io/badge/Status-Week_2_Complete-2ea44f?style=for-the-badge)
+![Security](https://img.shields.io/badge/Security-PCI_DSS_Ready-2ea44f?style=for-the-badge)![AWS](https://img.shields.io/badge/AWS-Cloud-orange)
 ![Terraform](https://img.shields.io/badge/Terraform-IaC-purple)
 ![Status](https://img.shields.io/badge/Status-In%20Progress-green)
 ![Security](https://img.shields.io/badge/Security-Enterprise-blue)
