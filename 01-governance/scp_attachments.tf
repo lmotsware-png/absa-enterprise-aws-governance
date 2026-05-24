@@ -15,3 +15,9 @@ resource "aws_organizations_policy_attachment" "development" {
   policy_id = aws_organizations_policy.dev_instance_limits.id
   target_id = aws_organizations_organizational_unit.development.id
 }
+
+# Attach security services protection SCP to Root (all accounts)
+resource "aws_organizations_policy_attachment" "deny_disable_security" {
+  policy_id = aws_organizations_policy.deny_disable_security_services.id
+  target_id = aws_organizations_organization.absa.roots[0].id
+}

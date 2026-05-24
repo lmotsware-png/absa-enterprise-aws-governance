@@ -32,3 +32,12 @@ output "scp_ids" {
     development      = aws_organizations_policy.dev_instance_limits.id
   }
 }
+
+output "scp_ids" {
+  value = {
+    deny_cloudtrail        = aws_organizations_policy.deny_cloudtrail_deletion.id
+    production             = aws_organizations_policy.production_restrictions.id
+    development            = aws_organizations_policy.dev_instance_limits.id
+    deny_disable_security  = aws_organizations_policy.deny_disable_security_services.id
+  }
+}

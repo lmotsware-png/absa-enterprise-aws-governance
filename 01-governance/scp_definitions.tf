@@ -87,3 +87,54 @@ resource "aws_organizations_policy" "dev_instance_limits" {
   content     = data.aws_iam_policy_document.dev_instance_limits.json
   type        = "SERVICE_CONTROL_POLICY"
 }
+
+# ============================================
+# SCP #4: Deny Disabling Security Services
+# ============================================
+
+data "aws_iam_policy_document" "deny_disable_security_services" {
+  statement {
+    sid    = "DenyDisableGuardDuty"
+    effect = "Deny"
+    actions = [
+      "guardduty:DeleteDetector",
+      "guardduty:DeleteMembers",
+      "guardduty:DisassociateFromMasterAccount",
+      "guardduty:DisassociateMembers",
+      "guardduty:StopMonitoringMembers",
+      "guardduty:UpdateDetector"
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "DenyDisableSecurityHub"
+    effect = "Deny"
+    actions = [
+      "securityhub:DeleteInsight",
+      "securityhub:DisableImportFindingsForProduct",
+      "securityhub:DisableSecurityHub",
+      "securityhub:DisassociateFromMasterAccount",
+      "securityhub:DisassociateMembers"
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "DenyDisableConfig"
+    effect = "Deny"
+    actions = [
+      "config:DeleteConfigurationRecorder",
+      "config:DeleteDeliveryChannel",
+      "config:StopConfigurationRecorder"
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_organizations_policy" "deny_disable_security_services" {
+  name        = "ABSA-Deny-Disable-Security-Services"
+  description = "Prevents disabling GuardDuty, Security Hub, and AWS Config across all accounts"
+  content     = data.aws_iam_policy_document.deny_disable_security_services.json
+  type        = "SERVICE_CONTROL_POLICY"
+}
