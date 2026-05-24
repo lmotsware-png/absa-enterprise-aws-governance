@@ -266,3 +266,35 @@ resource "aws_vpc_endpoint" "sts" {
     Name = "ABSA-STS-Endpoint-${each.key}"
   })
 }
+
+# KMS Interface Endpoint — Required for encryption/decryption from private subnets
+resource "aws_vpc_endpoint" "kms" {
+  for_each = var.create_vpc_endpoints ? {
+    production = aws_vpc.production.id
+    hr         = aws_vpc.hr.id
+    finance    = aws_vpc.finance.id
+    devops     = aws_vpc.devops.id
+    staging    = aws_vpc.staging.id
+    qa         = aws_vpc.qa.id
+  } : {}
+
+  vpc_id              = each.value
+  service_name        = "com.amazonaws.${var.primary_region}.kms"
+  vpc_endpoint_type   = "Interface"
+  private_dns_enabled = true
+  subnet_ids = each.key == "production" ? aws_subnet.production_endpoints[*].id : (
+    each.key == "hr" ? aws_subnet.hr_endpoints[*].id : (
+      each.key == "finance" ? aws_subnet.finance_endpoints[*].id : (
+        each.key == "devops" ? aws_subnet.devops_endpoints[*].id : (
+          each.key == "staging" ? aws_subnet.staging_endpoints[*].id : aws_subnet.qa_endpoints[*].id
+        )
+      )
+    )
+  )
+
+  security_group_ids = [aws_security_group.vpc_endpoints.id]
+
+  tags = merge(local.common_tags, {
+    Name = "ABSA-KMS-Interface-Endpoint-${each.key}"
+  })
+}
