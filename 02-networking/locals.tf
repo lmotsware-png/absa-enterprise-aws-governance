@@ -24,4 +24,13 @@ tier_offsets = {
     dev_to_shared        = "development-to-shared-services"
     staging_to_shared    = "staging-to-shared-services"
   }
+   # All VPCs map for iteration
+  all_vpcs = {
+    production  = aws_vpc.production
+    hr          = aws_vpc.hr
+    finance     = aws_vpc.finance
+    devops      = aws_vpc.devops
+    staging     = aws_vpc.staging
+    qa          = aws_vpc.qa
+  }
 }
