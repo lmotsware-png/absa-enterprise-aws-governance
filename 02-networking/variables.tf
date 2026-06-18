@@ -1,13 +1,13 @@
 variable "primary_region" {
   description = "Primary AWS region for ABSA operations"
   type        = string
-  default     = "eu-west-1"
+  default     = "af-south-1"
 }
 
 variable "dr_region" {
   description = "Disaster Recovery region"
   type        = string
-  default     = "af-south-1"
+  default     = "eu-west-1"
 }
 
 variable "environment" {
