@@ -1,4 +1,19 @@
+## 📺 Watch Me Build This on YouTube
 
+I am teaching this project step by step on YouTube. Every video explains the code, architecture, and decisions behind each layer.
+
+👉 **[Subscribe to LM Cloud Architect](https://www.youtube.com/@LMCloudArchitect)**
+
+**Videos in this series:**
+
+| Week | Topic | Video Link |
+|------|-------|------------|
+| Week 1 | Introduction – What Happens When You Send Money? | [Watch](https://youtu.be/0hpqJVTZI0c) |
+| Week 1 | Terraform AWS Governance Deep Dive | [Watch](https://youtu.be/ni7jhxthB44) |
+| Week 2 | Coming soon | – |
+| Week 3 | Coming soon | – |
+
+---
 
 ---
 
