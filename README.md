@@ -11,6 +11,12 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 1 | Introduction – What Happens When You Send Money? | [Watch](https://youtu.be/0hpqJVTZI0c) |
 | Week 1 | Terraform AWS Governance Deep Dive – terraform {} block & Providers | [Watch](https://youtu.be/ni7jhxthB44) |
 | Week 1 | The Provider – Terraform Talks to AWS | [Watch](https://youtu.be/LUHkYg9BNuQ) |
+| Week 1 | AWS Organizations & Control Tower – Week 1 (Step 3 & 4) | [Watch](https://youtu.be/36lmmxstt-M) |
+| Week 1 | Log Archive & Audit Accounts – Week 1 (Step 5) | [Watch](https://youtu.be/KBaOCiNsc7g) |
+| Week 1 | Understanding Organizational Units (OUs) – Week 1 (OU_structure.tf) | [Watch](https://youtu.be/FdzG5iXaFZU) |
+| Week 1 | OU Structure, Variables, Locals, Outputs & SCPs – Week 1 (Deep Dive) | [Watch](https://youtu.be/2WusbmWkwIc) |
+| Week 1 | Locals.tf Explained – Terraform Building Blocks (Week 1) | [Watch](https://youtu.be/hkCbNirBKw0) |
+| Week 1 | Outputs.tf Explained – Terraform Building Blocks (Week 1) | [Watch](https://youtu.be/swxU2rsQS1A) |
 | Week 2 | Coming soon | – |
 | Week 3 | Coming soon | – |
 | Week 4 | Coming soon | – |
