@@ -17,6 +17,9 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 1 | OU Structure, Variables, Locals, Outputs & SCPs – Week 1 (Deep Dive) | [Watch](https://youtu.be/2WusbmWkwIc) |
 | Week 1 | Locals.tf Explained – Terraform Building Blocks (Week 1) | [Watch](https://youtu.be/hkCbNirBKw0) |
 | Week 1 | Outputs.tf Explained – Terraform Building Blocks (Week 1) | [Watch](https://youtu.be/swxU2rsQS1A) |
+| Week 1 | SCPs Explained – DenyCloudTrailDeletion & data vs resource | [Watch](https://youtu.be/U4mRGycR7nE) |
+| Week 1 | ProductionRestrictions SCP – AWS Service Control Policies (Week 1) | [Watch](https://youtu.be/Sm_FZuV6jSA) |
+| Week 1 | SCP 3: DevInstanceLimits – Prevent Expensive EC2 Instances in Dev (Week 1) | [Watch](https://youtu.be/_UfupTkT8cg) |
 | Week 2 | Coming soon | – |
 | Week 3 | Coming soon | – |
 | Week 4 | Coming soon | – |
