@@ -26,6 +26,8 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 4 | Coming soon | – |
 | Week 5 | Coming soon | – |
 | Week 6 | Coming soon | – |
+
+📂 **Full Week 1 Slides:** http://spoo.me/01-gov
 ---
 
 # 🏦 FINANCIAL BANK ABSA Enterprise AWS Landing Zone
