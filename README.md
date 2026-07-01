@@ -29,17 +29,24 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 1 | SCP 3: DevInstanceLimits – Prevent Expensive EC2 Instances in Dev (Week 1) | [Watch](https://youtu.be/_UfupTkT8cg) |
 | Week 1 | SCP Attachments – Connecting SCPs to OUs (Week 1) | [Watch](https://youtu.be/W4SOoIcL2IE) |
 
+### 🛣️ ABSA Enterprise AWS – Week 2 (Networking)
+
+| Week | Topic | Video Link | Slides |
+|------|-------|------------|--------|
+| Week 2 | Financial Bank Enterprise AWS – Week 2: Multi-VPC Transit Architecture (Introduction) | [Watch](https://youtu.be/wnK3N5UuUoE) | [Slides](https://t.ly/44BoP) |
+
 ### 🚧 Coming Soon
 
 | Week | Topic | Status |
 |------|-------|--------|
-| Week 2 | Enterprise Networking & VPC Endpoints | Coming soon |
-| Week 3 | Security Architecture & IAM | Coming soon |
-| Week 4 | Production Platform & EKS | Coming soon |
-| Week 5 | Data Platform & Analytics | Coming soon |
-| Week 6 | Disaster Recovery & DevOps Automation | Coming soon |
+| Week 2 | Enterprise Networking & VPC Endpoints (Deep Dive) | In progress |
+| Week 3 | Security Architecture & IAM | Planned |
+| Week 4 | Production Platform & EKS | Planned |
+| Week 5 | Data Platform & Analytics | Planned |
+| Week 6 | Disaster Recovery & DevOps Automation | Planned |
 
 📂 **Full Week 1 Slides:** http://spoo.me/01-gov
+📂 **Week 2 Slides:** cumming soon at the end of week 2
 
 # 🏦 FINANCIAL BANK ABSA Enterprise AWS Landing Zone
 
