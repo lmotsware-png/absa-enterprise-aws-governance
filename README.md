@@ -4,7 +4,14 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 
 👉 **[Subscribe to LM Cloud Architect](https://www.youtube.com/@LMCloudArchitect)**
 
-### Videos in this series:
+### 📖 Cloud Fundamentals – What Is Cloud?
+
+| Topic | Video Link | Slides |
+|-------|------------|--------|
+| What Is Cloud? From Distance and Physics to Data Centers (Part 1) | [Watch](https://youtu.be/Y1irWjKMiqc) | [Slides](https://eu.docworkspace.com/d/sbTawmUVMprM9Tqn_2j85a3sdezgdmjslyz?sa=601.1037) |
+| What Is Cloud? From Distance and Physics to Data Centers (Part 2) | [Watch](https://youtu.be/lQ3_FssWuK8) | [Slides](https://eu.docworkspace.com/d/sbTawmUVMprM9Tqn_2j85a3sdezgdmjslyz?sa=601.1037) |
+
+### 🏗️ ABSA Enterprise AWS – Week 1 (Governance)
 
 | Week | Topic | Video Link |
 |------|-------|------------|
@@ -21,14 +28,18 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 1 | ProductionRestrictions SCP – AWS Service Control Policies (Week 1) | [Watch](https://youtu.be/Sm_FZuV6jSA) |
 | Week 1 | SCP 3: DevInstanceLimits – Prevent Expensive EC2 Instances in Dev (Week 1) | [Watch](https://youtu.be/_UfupTkT8cg) |
 | Week 1 | SCP Attachments – Connecting SCPs to OUs (Week 1) | [Watch](https://youtu.be/W4SOoIcL2IE) |
-| Week 2 | Coming soon | – |
-| Week 3 | Coming soon | – |
-| Week 4 | Coming soon | – |
-| Week 5 | Coming soon | – |
-| Week 6 | Coming soon | – |
+
+### 🚧 Coming Soon
+
+| Week | Topic | Status |
+|------|-------|--------|
+| Week 2 | Enterprise Networking & VPC Endpoints | Coming soon |
+| Week 3 | Security Architecture & IAM | Coming soon |
+| Week 4 | Production Platform & EKS | Coming soon |
+| Week 5 | Data Platform & Analytics | Coming soon |
+| Week 6 | Disaster Recovery & DevOps Automation | Coming soon |
 
 📂 **Full Week 1 Slides:** http://spoo.me/01-gov
----
 
 # 🏦 FINANCIAL BANK ABSA Enterprise AWS Landing Zone
 
