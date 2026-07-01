@@ -29,6 +29,8 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 1 | SCP 3: DevInstanceLimits – Prevent Expensive EC2 Instances in Dev (Week 1) | [Watch](https://youtu.be/_UfupTkT8cg) |
 | Week 1 | SCP Attachments – Connecting SCPs to OUs (Week 1) | [Watch](https://youtu.be/W4SOoIcL2IE) |
 
+📂 **Full Week 1 Slides:** http://spoo.me/01-gov
+
 ### 🛣️ ABSA Enterprise AWS – Week 2 (Networking)
 
 | Week | Topic | Video Link | Slides |
@@ -45,7 +47,6 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 5 | Data Platform & Analytics | Planned |
 | Week 6 | Disaster Recovery & DevOps Automation | Planned |
 
-📂 **Full Week 1 Slides:** http://spoo.me/01-gov
 
 
 # 🏦 FINANCIAL BANK ABSA Enterprise AWS Landing Zone
