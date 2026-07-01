@@ -46,7 +46,7 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 6 | Disaster Recovery & DevOps Automation | Planned |
 
 📂 **Full Week 1 Slides:** http://spoo.me/01-gov
-📂 **Week 2 Slides:** cumming soon at the end of week 2
+
 
 # 🏦 FINANCIAL BANK ABSA Enterprise AWS Landing Zone
 
