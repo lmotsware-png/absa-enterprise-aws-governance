@@ -37,6 +37,7 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 |------|-------|------------|--------|
 | Week 2 | Financial Bank Enterprise AWS – Week 2: Multi-VPC Transit Architecture (Introduction) | [Watch](https://youtu.be/wnK3N5UuUoE) | [Slides](https://t.ly/44BoP) |
 | Week 2 | Financial Bank Enterprise AWS – Week 2: main.tf (S3 Backend, Remote State & Providers) | [Watch](https://youtu.be/vVayWYJjDxU) | [Slides](https://t.ly/uKSND) |
+| Week 2 | Financial Bank Enterprise AWS – Week 2: variables.tf (CIDR Design, AZs & TGW ASN) | [Watch](https://youtu.be/E-EmY42VLA0) | [Slides](https://t.ly/snwn7) |
 
 ### 🚧 Coming Soon
 
@@ -48,7 +49,6 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 5 | Data Platform & Analytics | Planned |
 | Week 6 | Disaster Recovery & DevOps Automation | Planned |
 
-📂 **Full Week 2 Slides:** https://t.ly/44BoP
 
 
 
