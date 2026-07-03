@@ -36,6 +36,7 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week | Topic | Video Link | Slides |
 |------|-------|------------|--------|
 | Week 2 | Financial Bank Enterprise AWS – Week 2: Multi-VPC Transit Architecture (Introduction) | [Watch](https://youtu.be/wnK3N5UuUoE) | [Slides](https://t.ly/44BoP) |
+| Week 2 | Financial Bank Enterprise AWS – Week 2: main.tf (S3 Backend, Remote State & Providers) | [Watch](https://youtu.be/vVayWYJjDxU) | [Slides](https://t.ly/uKSND) |
 
 ### 🚧 Coming Soon
 
@@ -46,6 +47,8 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 4 | Production Platform & EKS | Planned |
 | Week 5 | Data Platform & Analytics | Planned |
 | Week 6 | Disaster Recovery & DevOps Automation | Planned |
+
+📂 **Full Week 2 Slides:** https://t.ly/44BoP
 
 
 
