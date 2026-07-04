@@ -7,6 +7,17 @@ terraform {
       version = ">= 6.22.0"
     }
   }
+
+  # Remote state backend — stores terraform.tfstate in S3
+  # This bucket must be created BEFORE running terraform init
+  # See README.md for bootstrap instructions
+  backend "s3" {
+    bucket         = "absa-terraform-state-af-south-1"
+    key            = "01-governance/terraform.tfstate"
+    region         = "af-south-1"
+    dynamodb_table = "absa-terraform-locks"
+    encrypt        = true
+  }
 }
 
 # Root Organization — Establish the multi-account foundation
@@ -34,7 +45,7 @@ resource "aws_organizations_organization" "absa" {
 # Control Tower Landing Zone — Automates guardrails and account provisioning
 resource "aws_controltower_landing_zone" "absa" {
   manifest_json = jsonencode({
-    governedRegions = ["eu-west-1", "eu-west-2", "af-south-1"]
+    governedRegions = ["af-south-1", "eu-west-1", "eu-west-2"]
     organizationStructure = {
       security = { name = "Security" }
       shared_services = { name = "Shared-Services" }
