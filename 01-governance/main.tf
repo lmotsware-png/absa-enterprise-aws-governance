@@ -65,7 +65,7 @@ resource "aws_controltower_landing_zone" "absa" {
       enabled = true
     }
   })
-  version = "3.3"
+  version = "4.0"
 }
 
 # Log Archive Account (Control Tower mandatory)
