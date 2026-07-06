@@ -38,6 +38,9 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 2 | Financial Bank Enterprise AWS – Week 2: Multi-VPC Transit Architecture (Introduction) | [Watch](https://youtu.be/wnK3N5UuUoE) | [Slides](https://t.ly/44BoP) |
 | Week 2 | Financial Bank Enterprise AWS – Week 2: main.tf (S3 Backend, Remote State & Providers) | [Watch](https://youtu.be/vVayWYJjDxU) | [Slides](https://t.ly/uKSND) |
 | Week 2 | Financial Bank Enterprise AWS – Week 2: variables.tf (CIDR Design, AZs & TGW ASN) | [Watch](https://youtu.be/E-EmY42VLA0) | [Slides](https://t.ly/snwn7) |
+| Week 2 | Financial Bank Enterprise AWS – Week 2: variables.tf (TGW Settings – The Foundation of Segmentation) | [Watch](https://youtu.be/orh5Qqhlc0c) | [Slides](https://t.ly/TKnnT) |
+| Week 2 | ABSA Enterprise AWS – Week 2: locals.tf (Subnetting, DRY Principle & 72 Subnets) | [Watch](https://youtu.be/vvxQY-uyDEE) | [Slides](https://t.ly/AjVev) |
+| Week 2 | ABSA Enterprise AWS – Week 2: locals.tf (Common Tags & TGW Route Table Names) | [Watch](https://youtu.be/d0y3oaeMrLY) | [Slides](https://t.ly/OVZ1v) |
 
 ### 🚧 Coming Soon
 
@@ -48,7 +51,6 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 4 | Production Platform & EKS | Planned |
 | Week 5 | Data Platform & Analytics | Planned |
 | Week 6 | Disaster Recovery & DevOps Automation | Planned |
-
 
 
 
