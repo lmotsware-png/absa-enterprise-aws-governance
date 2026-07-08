@@ -41,6 +41,7 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 2 | Financial Bank Enterprise AWS – Week 2: variables.tf (TGW Settings – The Foundation of Segmentation) | [Watch](https://youtu.be/orh5Qqhlc0c) | [Slides](https://t.ly/TKnnT) |
 | Week 2 | ABSA Enterprise AWS – Week 2: locals.tf (Subnetting, DRY Principle & 72 Subnets) | [Watch](https://youtu.be/vvxQY-uyDEE) | [Slides](https://t.ly/AjVev) |
 | Week 2 | ABSA Enterprise AWS – Week 2: locals.tf (Common Tags & TGW Route Table Names) | [Watch](https://youtu.be/d0y3oaeMrLY) | [Slides](https://t.ly/OVZ1v) |
+| Week 2 | Financial Bank Enterprise AWS – Week 2: vpc_production.tf (Production VPC – The First Neighbourhood) | [Watch](https://youtu.be/OYb9qFwJ3Ps) | [Slides](https://t.ly/44BoP) |
 
 ### 🚧 Coming Soon
 
