@@ -42,12 +42,13 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 2 | Financial Enterprise AWS – Week 2: locals.tf (Subnetting, DRY Principle & 72 Subnets) | [Watch](https://youtu.be/vvxQY-uyDEE) | [Slides](https://eu.docworkspace.com/d/sbTawmUSTxYeSA9X_av0xabctmn0h2v0hqn?sa=601.1037) |
 | Week 2 | Financial Enterprise AWS – Week 2: locals.tf (Common Tags & TGW Route Table Names) | [Watch](https://youtu.be/d0y3oaeMrLY) | [Slides]( https://eu.docworkspace.com/d/sbTawkX5CljQfabi_sxqrc52jctqzg12bot?sa=601.1037) |
 | Week 2 | Financial Bank Enterprise AWS – Week 2: vpc_production.tf (Production VPC – The First Neighbourhood) | [Watch](https://youtu.be/OYb9qFwJ3Ps) | [Slides](https://eu.docworkspace.com/d/sbTawiF3llNBEzTY_ezg163s9a74hyvkpuz?sa=601.1037) |
+| Week 2 | Financial Enterprise AWS – Week 2: vpc_production.tf (Transit Gateway Attachment) | [Watch](https://youtu.be/gObWCCQovBY) | [Slides](https://eu.docworkspace.com/d/sbTawk8s3TgIXKzl_8t6nstir096r81u7sd?sa=601.1037) |
+| Week 2 | Financial Enterprise AWS – Week 2: Other VPCs (HR, Finance, DevOps, Staging, QA) & VPC Endpoints | [Watch](https://youtu.be/epA6KeaW9Dw) | [Slides](https://docs.google.com/presentation/d/13Swfec_zfQRa4L8cT9lbB_0uB3l4GmAO/edit?usp=sharing) |
 
 ### 🚧 Coming Soon
 
 | Week | Topic | Status |
 |------|-------|--------|
-| Week 2 | Enterprise Networking & VPC Endpoints (Deep Dive) | In progress |
 | Week 3 | Security Architecture & IAM | Planned |
 | Week 4 | Production Platform & EKS | Planned |
 | Week 5 | Data Platform & Analytics | Planned |
