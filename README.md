@@ -44,6 +44,7 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 2 | Financial Bank Enterprise AWS – Week 2: vpc_production.tf (Production VPC – The First Neighbourhood) | [Watch](https://youtu.be/OYb9qFwJ3Ps) | [Slides](https://eu.docworkspace.com/d/sbTawiF3llNBEzTY_ezg163s9a74hyvkpuz?sa=601.1037) |
 | Week 2 | Financial Enterprise AWS – Week 2: vpc_production.tf (Transit Gateway Attachment) | [Watch](https://youtu.be/gObWCCQovBY) | [Slides](https://eu.docworkspace.com/d/sbTawk8s3TgIXKzl_8t6nstir096r81u7sd?sa=601.1037) |
 | Week 2 | Financial Enterprise AWS – Week 2: Other VPCs (HR, Finance, DevOps, Staging, QA) & VPC Endpoints | [Watch](https://youtu.be/epA6KeaW9Dw) | [Slides](https://docs.google.com/presentation/d/13Swfec_zfQRa4L8cT9lbB_0uB3l4GmAO/edit?usp=sharing) |
+| Week 2 | Financial Bank Enterprise AWS – Week 2: VPC Endpoints, Data Route Tables & NAT Explained | [Watch](https://youtu.be/JjJrzjkMfJ0) | [Slides](https://docs.google.com/presentation/d/1NEWv-iN8ffGxU5quy-4kkxJ9OYOevSEX/edit?usp=sharing) |
 
 ### 🚧 Coming Soon
 
@@ -53,7 +54,6 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 4 | Production Platform & EKS | Planned |
 | Week 5 | Data Platform & Analytics | Planned |
 | Week 6 | Disaster Recovery & DevOps Automation | Planned |
-
 
 
 # 🏦 FINANCIAL BANK ABSA Enterprise AWS Landing Zone
