@@ -1,3 +1,9 @@
+# Updated README.md for GitHub
+
+Here is the updated `README.md` with your new Week 2 videos added:
+
+---
+
 ## 📺 Watch Me Build This on YouTube
 
 I am teaching this project step by step on YouTube. Every video explains the code, architecture, and decisions behind each layer.
@@ -45,6 +51,11 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 2 | Financial Enterprise AWS – Week 2: vpc_production.tf (Transit Gateway Attachment) | [Watch](https://youtu.be/gObWCCQovBY) | [Slides](https://eu.docworkspace.com/d/sbTawk8s3TgIXKzl_8t6nstir096r81u7sd?sa=601.1037) |
 | Week 2 | Financial Enterprise AWS – Week 2: Other VPCs (HR, Finance, DevOps, Staging, QA) & VPC Endpoints | [Watch](https://youtu.be/epA6KeaW9Dw) | [Slides](https://docs.google.com/presentation/d/13Swfec_zfQRa4L8cT9lbB_0uB3l4GmAO/edit?usp=sharing) |
 | Week 2 | Financial Bank Enterprise AWS – Week 2: VPC Endpoints, Data Route Tables & NAT Explained | [Watch](https://youtu.be/JjJrzjkMfJ0) | [Slides](https://docs.google.com/presentation/d/1NEWv-iN8ffGxU5quy-4kkxJ9OYOevSEX/edit?usp=sharing) |
+| Week 2 | Financial Bank Enterprise AWS – Week 2: Transit Gateway (The Central Junction) | [Watch](https://youtu.be/P0WoDGdWasg) | [Slides](https://docs.google.com/presentation/d/1VwzuKkJnXRbC0dJnR5I_o_d_xl9D7UE0/edit?usp=sharing) |
+| Week 2 | Financial Enterprise AWS – Week 2: Transit Gateway (TGW Resource, ASN, Route Tables & Segmentation) | [Watch](https://youtu.be/1Dr21uGa98A) | [Slides](https://docs.google.com/presentation/d/1LxMSnbPG2Q5Uhyoh2HtY7xN6C3XlpdOm/edit?usp=sharing) |
+| Week 2 | Financial Enterprise AWS – Week 2: Route Tables & Routing Domains (The Permit Lists) | [Watch](https://youtu.be/BwcD9EiwtMs) | [Slides](https://docs.google.com/presentation/d/1BE1mevp4rE9AFJNkWUbIAqp8K8RARxCO/edit?usp=sharing) |
+| Week 2 | Financial Bank Enterprise AWS – Week 2: Security Groups (The Bouncers) | [Watch](https://youtu.be/DD0aka90nHo) | [Slides](https://docs.google.com/presentation/d/1MME5WlHEYLSNmWDQ_2BwvxoZMOYw4P8M/edit?usp=sharing) |
+| Week 2 | Financial Bank Enterprise AWS – RAM Shares: One Junction. Every Account. Automatically. | [Watch](https://youtu.be/Wi8pgs9oqA0) | [Slides](https://docs.google.com/presentation/d/1AH2mdwLaVilJjdxpzuBoyWLq410P27GU/edit?usp=sharing) |
 
 ### 🚧 Coming Soon
 
@@ -54,6 +65,22 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 4 | Production Platform & EKS | Planned |
 | Week 5 | Data Platform & Analytics | Planned |
 | Week 6 | Disaster Recovery & DevOps Automation | Planned |
+
+---
+
+## Summary of Changes
+
+| Action | Details |
+|--------|---------|
+| **Added** | 5 new Week 2 videos with links and slides |
+| **Video 1** | Transit Gateway (The Central Junction) |
+| **Video 2** | Transit Gateway (TGW Resource, ASN, Route Tables & Segmentation) |
+| **Video 3** | Route Tables & Routing Domains (The Permit Lists) |
+| **Video 4** | Security Groups (The Bouncers) |
+| **Video 5** | RAM Shares: One Junction. Every Account. Automatically. |
+
+---
+
 
 
 # 🏦 FINANCIAL BANK ABSA Enterprise AWS Landing Zone
