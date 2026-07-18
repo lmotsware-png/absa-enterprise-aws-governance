@@ -1,7 +1,3 @@
-# Updated README.md for GitHub
-
-Here is the updated `README.md` with your new Week 2 videos added:
-
 ---
 
 ## 📺 Watch Me Build This on YouTube
@@ -56,6 +52,7 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 2 | Financial Enterprise AWS – Week 2: Route Tables & Routing Domains (The Permit Lists) | [Watch](https://youtu.be/BwcD9EiwtMs) | [Slides](https://docs.google.com/presentation/d/1BE1mevp4rE9AFJNkWUbIAqp8K8RARxCO/edit?usp=sharing) |
 | Week 2 | Financial Bank Enterprise AWS – Week 2: Security Groups (The Bouncers) | [Watch](https://youtu.be/DD0aka90nHo) | [Slides](https://docs.google.com/presentation/d/1MME5WlHEYLSNmWDQ_2BwvxoZMOYw4P8M/edit?usp=sharing) |
 | Week 2 | Financial Bank Enterprise AWS – RAM Shares: One Junction. Every Account. Automatically. | [Watch](https://youtu.be/Wi8pgs9oqA0) | [Slides](https://docs.google.com/presentation/d/1AH2mdwLaVilJjdxpzuBoyWLq410P27GU/edit?usp=sharing) |
+| Week 2 | Financial Bank Enterprise AWS – Week 2: Outputs & Complete Summary (The Signs for Future Weeks) | [Watch](https://youtu.be/yKlHQw7qBxE) | [Slides](https://eu.docworkspace.com/d/sbTawrOPsmHWfZxD_2foxyvc9u7w1qz0dqr?sa=601.1037) |
 
 ### 🚧 Coming Soon
 
@@ -67,22 +64,6 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 6 | Disaster Recovery & DevOps Automation | Planned |
 
 ---
-
-## Summary of Changes
-
-| Action | Details |
-|--------|---------|
-| **Added** | 5 new Week 2 videos with links and slides |
-| **Video 1** | Transit Gateway (The Central Junction) |
-| **Video 2** | Transit Gateway (TGW Resource, ASN, Route Tables & Segmentation) |
-| **Video 3** | Route Tables & Routing Domains (The Permit Lists) |
-| **Video 4** | Security Groups (The Bouncers) |
-| **Video 5** | RAM Shares: One Junction. Every Account. Automatically. |
-
----
-
-
-
 # 🏦 FINANCIAL BANK ABSA Enterprise AWS Landing Zone
 
 ### Enterprise Multi-Account AWS Platform Architecture with Terraform
