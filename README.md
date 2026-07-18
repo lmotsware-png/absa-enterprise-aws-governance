@@ -29,7 +29,7 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 1 | SCP 3: DevInstanceLimits – Prevent Expensive EC2 Instances in Dev (Week 1) | [Watch](https://youtu.be/_UfupTkT8cg) |
 | Week 1 | SCP Attachments – Connecting SCPs to OUs (Week 1) | [Watch](https://youtu.be/W4SOoIcL2IE) |
 
-📂 **Full Week 1 Slides:** http://spoo.me/01-gov
+📂 **Full Week 1 Slides:**  [Slides](http://spoo.me/01-gov) |
 
 ### 🛣️ ABSA Enterprise AWS – Week 2 (Networking)
 
@@ -51,7 +51,7 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 2 | Financial Bank Enterprise AWS – Week 2: Security Groups (The Bouncers) | [Watch](https://youtu.be/DD0aka90nHo) | [Slides](https://docs.google.com/presentation/d/1MME5WlHEYLSNmWDQ_2BwvxoZMOYw4P8M/edit?usp=sharing) |
 | Week 2 | Financial Bank Enterprise AWS – RAM Shares: One Junction. Every Account. Automatically. | [Watch](https://youtu.be/Wi8pgs9oqA0) | [Slides](https://docs.google.com/presentation/d/1AH2mdwLaVilJjdxpzuBoyWLq410P27GU/edit?usp=sharing) |
 
-📂 **Full Week 1 Slides:**  [Slides](https://docs.google.com/presentation/d/1AH2mdwLaVilJjdxpzuBoyWLq410P27GU/edit?usp=sharing) |
+📂 **Full Week 2 Slides:**  [Slides](https://docs.google.com/presentation/d/1AH2mdwLaVilJjdxpzuBoyWLq410P27GU/edit?usp=sharing) |
 
 
 ### 🚧 Coming Soon
