@@ -51,6 +51,9 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 2 | Financial Bank Enterprise AWS – Week 2: Security Groups (The Bouncers) | [Watch](https://youtu.be/DD0aka90nHo) | [Slides](https://docs.google.com/presentation/d/1MME5WlHEYLSNmWDQ_2BwvxoZMOYw4P8M/edit?usp=sharing) |
 | Week 2 | Financial Bank Enterprise AWS – RAM Shares: One Junction. Every Account. Automatically. | [Watch](https://youtu.be/Wi8pgs9oqA0) | [Slides](https://docs.google.com/presentation/d/1AH2mdwLaVilJjdxpzuBoyWLq410P27GU/edit?usp=sharing) |
 
+📂 **Full Week 1 Slides:**  [Slides](https://docs.google.com/presentation/d/1AH2mdwLaVilJjdxpzuBoyWLq410P27GU/edit?usp=sharing) |
+
+
 ### 🚧 Coming Soon
 
 | Week | Topic | Status |
