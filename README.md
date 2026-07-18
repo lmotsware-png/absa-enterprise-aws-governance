@@ -64,17 +64,6 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 | Week 6 | Disaster Recovery & DevOps Automation | Planned |
 
 ---
-
-### 🚧 Coming Soon
-
-| Week | Topic | Status |
-|------|-------|--------|
-| Week 3 | Security Architecture & IAM | Planned |
-| Week 4 | Production Platform & EKS | Planned |
-| Week 5 | Data Platform & Analytics | Planned |
-| Week 6 | Disaster Recovery & DevOps Automation | Planned |
-
----
 # 🏦 FINANCIAL BANK ABSA Enterprise AWS Landing Zone
 
 ### Enterprise Multi-Account AWS Platform Architecture with Terraform
