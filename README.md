@@ -62,20 +62,6 @@ I am teaching this project step by step on YouTube. Every video explains the cod
 
 ---
 
-## Summary of Changes
-
-| Action | Details |
-|--------|---------|
-| **Added** | 5 new Week 2 videos with links and slides |
-| **Video 1** | Transit Gateway (The Central Junction) |
-| **Video 2** | Transit Gateway (TGW Resource, ASN, Route Tables & Segmentation) |
-| **Video 3** | Route Tables & Routing Domains (The Permit Lists) |
-| **Video 4** | Security Groups (The Bouncers) |
-| **Video 5** | RAM Shares: One Junction. Every Account. Automatically. |
-
----" and what we added is the title Financial Bank Enterprise AWS – Week 2: Outputs & Complete Summary (The Signs for Future Weeks) and the link is https://youtu.be/yKlHQw7qBxE and the full week 2 slides https://eu.docworkspace.com/d/sbTawrOPsmHWfZxD_2foxyvc9u7w1qz0dqr?sa=601.1037
-| Week 2 | Financial Bank Enterprise AWS – Week 2: Outputs & Complete Summary (The Signs for Future Weeks) | [Watch](https://youtu.be/yKlHQw7qBxE) | [Slides](https://eu.docworkspace.com/d/sbTawrOPsmHWfZxD_2foxyvc9u7w1qz0dqr?sa=601.1037) |
-
 ### 🚧 Coming Soon
 
 | Week | Topic | Status |
