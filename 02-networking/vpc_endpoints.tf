@@ -2,7 +2,79 @@
 # VPC Endpoints - Private AWS Service Access
 # ============================================
 
-# Gateway Endpoints (Free) - S3 and DynamoDB
+# ============================================
+# LOCALS — Dynamic Route Table Associations
+# ============================================
+# These locals generate ALL route table associations dynamically
+# for both S3 and DynamoDB Gateway endpoints.
+#
+# For each VPC, we associate with:
+#   - ALL App route tables (3 per VPC, one per AZ)
+#   - The Data route table (1 per VPC)
+#
+# Total associations per endpoint: 6 VPCs × 4 route tables = 24 associations
+
+locals {
+  # Generate app route table associations for all VPCs
+  # This loops over each VPC's app route table list and creates
+  # one association per AZ: production_app_0, production_app_1, production_app_2
+  app_rt_associations = {
+    for pair in flatten([
+      for key, rt_list in {
+        production = aws_route_table.production_app
+        hr         = aws_route_table.hr_app
+        finance    = aws_route_table.finance_app
+        devops     = aws_route_table.devops_app
+        staging    = aws_route_table.staging_app
+        qa         = aws_route_table.qa_app
+      } :
+      [
+        for idx, rt in rt_list : {
+          key      = key
+          idx      = idx
+          endpoint = key
+          rt       = rt.id
+        }
+      ]
+
+
+    ]) :
+    "${pair.key}_app_${pair.idx}" => {
+      endpoint = pair.endpoint
+      rt       = pair.rt
+    }
+  }
+
+  # Generate data route table associations for all VPCs
+  data_rt_associations = {
+    for key, rt in {
+      production = aws_route_table.production_data
+      hr         = aws_route_table.hr_data
+      finance    = aws_route_table.finance_data
+      devops     = aws_route_table.devops_data
+      staging    = aws_route_table.staging_data
+      qa         = aws_route_table.qa_data
+    } :
+    "${key}_data" => {
+      endpoint = key
+      rt       = rt.id
+    }
+  }
+
+  all_gateway_associations = merge(
+    local.app_rt_associations,
+    local.data_rt_associations
+  )
+}
+
+# ============================================
+# GATEWAY ENDPOINTS (Free)
+# ============================================
+# Gateway endpoints work by injecting a route into your route tables.
+# They do NOT create ENIs. They are FREE.
+# They only work for S3 and DynamoDB.
+
+# S3 Gateway Endpoint — One per VPC
 resource "aws_vpc_endpoint" "s3_gateway" {
   for_each = var.create_vpc_endpoints ? {
     production = aws_vpc.production.id
@@ -21,26 +93,17 @@ resource "aws_vpc_endpoint" "s3_gateway" {
   })
 }
 
+# S3 Gateway Route Table Associations
+# FIXED: Now associates with ALL App route tables ([0], [1], [2]) + Data route table
+# Previously only associated with [0] (af-south-1a only)
 resource "aws_vpc_endpoint_route_table_association" "s3_gateway" {
-  for_each = var.create_vpc_endpoints ? {
-    production_app  = { endpoint = "production", rt = aws_route_table.production_app[0].id }
-    production_data = { endpoint = "production", rt = aws_route_table.production_data.id }
-    hr_app          = { endpoint = "hr", rt = aws_route_table.hr_app[0].id }
-    hr_data         = { endpoint = "hr", rt = aws_route_table.hr_data.id }
-    finance_app     = { endpoint = "finance", rt = aws_route_table.finance_app[0].id }
-    finance_data    = { endpoint = "finance", rt = aws_route_table.finance_data.id }
-    devops_app      = { endpoint = "devops", rt = aws_route_table.devops_app[0].id }
-    devops_data     = { endpoint = "devops", rt = aws_route_table.devops_data.id }
-    staging_app     = { endpoint = "staging", rt = aws_route_table.staging_app[0].id }
-    staging_data    = { endpoint = "staging", rt = aws_route_table.staging_data.id }
-    qa_app          = { endpoint = "qa", rt = aws_route_table.qa_app[0].id }
-    qa_data         = { endpoint = "qa", rt = aws_route_table.qa_data.id }
-  } : {}
+  for_each = var.create_vpc_endpoints ? local.all_gateway_associations : {}
 
   vpc_endpoint_id = aws_vpc_endpoint.s3_gateway[each.value.endpoint].id
   route_table_id  = each.value.rt
 }
 
+# DynamoDB Gateway Endpoint — One per VPC
 resource "aws_vpc_endpoint" "dynamodb_gateway" {
   for_each = var.create_vpc_endpoints ? {
     production = aws_vpc.production.id
@@ -59,27 +122,24 @@ resource "aws_vpc_endpoint" "dynamodb_gateway" {
   })
 }
 
+# DynamoDB Gateway Route Table Associations
+# FIXED: Now associates with ALL App route tables ([0], [1], [2]) + Data route table
+# Previously only associated with [0] (af-south-1a only)
 resource "aws_vpc_endpoint_route_table_association" "dynamodb_gateway" {
-  for_each = var.create_vpc_endpoints ? {
-    production_app  = { endpoint = "production", rt = aws_route_table.production_app[0].id }
-    production_data = { endpoint = "production", rt = aws_route_table.production_data.id }
-    hr_app          = { endpoint = "hr", rt = aws_route_table.hr_app[0].id }
-    hr_data         = { endpoint = "hr", rt = aws_route_table.hr_data.id }
-    finance_app     = { endpoint = "finance", rt = aws_route_table.finance_app[0].id }
-    finance_data    = { endpoint = "finance", rt = aws_route_table.finance_data.id }
-    devops_app      = { endpoint = "devops", rt = aws_route_table.devops_app[0].id }
-    devops_data     = { endpoint = "devops", rt = aws_route_table.devops_data.id }
-    staging_app     = { endpoint = "staging", rt = aws_route_table.staging_app[0].id }
-    staging_data    = { endpoint = "staging", rt = aws_route_table.staging_data.id }
-    qa_app          = { endpoint = "qa", rt = aws_route_table.qa_app[0].id }
-    qa_data         = { endpoint = "qa", rt = aws_route_table.qa_data.id }
-  } : {}
+  for_each = var.create_vpc_endpoints ? local.all_gateway_associations : {}
 
   vpc_endpoint_id = aws_vpc_endpoint.dynamodb_gateway[each.value.endpoint].id
   route_table_id  = each.value.rt
 }
 
-# Interface Endpoints (Paid) - For all other AWS services
+# ============================================
+# INTERFACE ENDPOINTS (Paid)
+# ============================================
+# Interface endpoints create ENIs (Elastic Network Interfaces)
+# in your endpoint subnets. They have private IP addresses.
+# They cost ~$0.01/hour per AZ + data transfer.
+
+# Kinesis Streams — Production and Finance only
 resource "aws_vpc_endpoint" "kinesis_streams" {
   for_each = var.create_vpc_endpoints ? {
     production = aws_vpc.production.id
@@ -99,6 +159,7 @@ resource "aws_vpc_endpoint" "kinesis_streams" {
   })
 }
 
+# Kinesis Firehose — Production and Finance only
 resource "aws_vpc_endpoint" "kinesis_firehose" {
   for_each = var.create_vpc_endpoints ? {
     production = aws_vpc.production.id
@@ -118,6 +179,7 @@ resource "aws_vpc_endpoint" "kinesis_firehose" {
   })
 }
 
+# ECR API — Production, DevOps, Staging
 resource "aws_vpc_endpoint" "ecr_api" {
   for_each = var.create_vpc_endpoints ? {
     production = aws_vpc.production.id
@@ -140,6 +202,7 @@ resource "aws_vpc_endpoint" "ecr_api" {
   })
 }
 
+# ECR DKR — Production, DevOps, Staging
 resource "aws_vpc_endpoint" "ecr_dkr" {
   for_each = var.create_vpc_endpoints ? {
     production = aws_vpc.production.id
@@ -162,6 +225,7 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
   })
 }
 
+# CloudWatch Logs — ALL VPCs
 resource "aws_vpc_endpoint" "cloudwatch_logs" {
   for_each = var.create_vpc_endpoints ? {
     production = aws_vpc.production.id
@@ -193,6 +257,7 @@ resource "aws_vpc_endpoint" "cloudwatch_logs" {
   })
 }
 
+# Secrets Manager — Production and Finance only
 resource "aws_vpc_endpoint" "secrets_manager" {
   for_each = var.create_vpc_endpoints ? {
     production = aws_vpc.production.id
@@ -212,6 +277,7 @@ resource "aws_vpc_endpoint" "secrets_manager" {
   })
 }
 
+# SQS — Production only
 resource "aws_vpc_endpoint" "sqs" {
   for_each = var.create_vpc_endpoints ? {
     production = aws_vpc.production.id
@@ -230,6 +296,7 @@ resource "aws_vpc_endpoint" "sqs" {
   })
 }
 
+# SNS — Production only
 resource "aws_vpc_endpoint" "sns" {
   for_each = var.create_vpc_endpoints ? {
     production = aws_vpc.production.id
@@ -248,6 +315,7 @@ resource "aws_vpc_endpoint" "sns" {
   })
 }
 
+# STS — Production and DevOps only
 resource "aws_vpc_endpoint" "sts" {
   for_each = var.create_vpc_endpoints ? {
     production = aws_vpc.production.id
@@ -267,7 +335,7 @@ resource "aws_vpc_endpoint" "sts" {
   })
 }
 
-# KMS Interface Endpoint — Required for encryption/decryption from private subnets
+# KMS Interface Endpoint — ALL VPCs (required for encryption/decryption)
 resource "aws_vpc_endpoint" "kms" {
   for_each = var.create_vpc_endpoints ? {
     production = aws_vpc.production.id
