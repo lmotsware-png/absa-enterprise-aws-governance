@@ -4,17 +4,17 @@ Cloud & Network Infrastructure Engineer · AWS SAA · CCNA
 
 I bridge the gap between physical networking and cloud automation — building secure, scalable, and production-grade infrastructure.
 
-🔗 Connect with Me:
+📬 Connect with Me:
 
 Email: lmotsware@gmail.com
 
 Phone: 072 653 3264
 
-LinkedIn: linkedin.com/in/lerato-motsware-83923017a
+LinkedIn: https://www.linkedin.com/in/lerato-motsware-83923017a/
 
-YouTube: LM Cloud Architect – Watch me build this project step-by-step.
+YouTube: https://www.youtube.com/@LMCloudArchitect – Watch me build this project step-by-step.
 
-My Philosophy:
+💡 My Philosophy:
 
 "Cloud does not replace networking — it automates it."
 
