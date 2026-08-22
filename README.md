@@ -1,9 +1,8 @@
----
 👨‍💻 Author
 Lerato Motsware
-Cloud & Network Infrastructure Engineer · AWS Solution Architecture · CCNA
+Cloud & Network Infrastructure Engineer · AWS SAA · CCNA
 
-I bridge the gap between physical Infrastructure Architect and cloud automation — building secure, scalable, and production-grade infrastructure.
+I bridge the gap between physical networking and cloud automation — building secure, scalable, and production-grade infrastructure.
 
 🔗 Connect with Me:
 
@@ -18,7 +17,6 @@ YouTube: LM Cloud Architect – Watch me build this project step-by-step.
 My Philosophy:
 
 "Cloud does not replace networking — it automates it."
----
 
 ## 📺 Watch Me Build This on YouTube
 
