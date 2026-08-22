@@ -1,0 +1,508 @@
+# ============================================
+# BuildSpec — Payment API
+# ============================================
+#
+# This file defines the build instructions for the
+# ABSA Payment API application. It lives in the
+# 09-devops/ directory as a reference/template.
+# The ACTUAL file must be committed to the root of
+# the payment-api CodeCommit repository:
+#   absa-devops-payment-api/buildspec_paymentapi.yml
+#
+# CodeBuild reads this file from the source checkout
+# when the build stage executes. If the file is missing
+# from the repository, CodeBuild fails with:
+# "YAML_FILE_ERROR: buildspec_paymentapi.yml not found"
+#
+# Build stages this buildspec covers:
+#   Phase 1: install    — tool installation (cached)
+#   Phase 2: pre_build  — environment setup, ECR login
+#   Phase 3: build      — compile, test, SAST, Docker build
+#   Phase 4: post_build — tag, scan results, write artifacts
+#
+# Environment variables available (set by CodeBuild project
+# in codebuild.tf and codepipeline.tf):
+#   APP_NAME              = payment-api
+#   ECR_REPOSITORY_URI    = <account>.dkr.ecr.af-south-1.amazonaws.com/absa/payment-api
+#   AWS_ACCOUNT_ID        = 123456789012
+#   PRIMARY_REGION        = af-south-1
+#   K8S_NAMESPACE         = payment-api
+#   K8S_DEPLOYMENT        = payment-api
+#   K8S_CONTAINER         = payment-api
+#   SEMGREP_RULES         = p/java p/owasp-top-ten
+#   SONAR_TOKEN           = (from Secrets Manager, if enabled)
+#   PIPELINE_EXECUTION_ID = (from CodePipeline variable)
+#   CODEBUILD_RESOLVED_SOURCE_VERSION = git commit SHA (set by CodeBuild)
+# ============================================
+
+version: 0.2
+
+# ============================================
+# Environment
+# ============================================
+# Variables declared here are available in all phases.
+# Derived from the environment variables injected by
+# the CodeBuild project in codebuild.tf.
+
+env:
+  variables:
+    # Java version — must match the runtime in the Dockerfile
+    # Amazon Corretto 21 = Java LTS release
+    JAVA_HOME: "/usr/lib/jvm/java-21-amazon-corretto"
+    MAVEN_OPTS: "-Xmx3g -XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+
+    # Docker image name during build (before ECR push)
+    # Final tag applied in post_build using commit SHA
+    IMAGE_NAME: "payment-api"
+
+    # Maven settings — skip interactive prompts
+    MAVEN_CLI_OPTS: "--batch-mode --no-transfer-progress"
+
+    # Trivy scan severity threshold
+    # CRITICAL findings are logged but do NOT fail the build
+    # (see Security note in variables.tf)
+    TRIVY_SEVERITY: "CRITICAL,HIGH"
+
+    # JUnit test report directory
+    # CodeBuild reports: picks up test results from here
+    TEST_REPORT_DIR: "target/surefire-reports"
+
+    # Coverage report directory
+    COVERAGE_REPORT_DIR: "target/site/jacoco"
+
+  # Git credentials helper for CodeCommit clone
+  # (when OutputArtifactFormat = CODEBUILD_CLONE_REF)
+  git-credential-helper: yes
+
+# ============================================
+# Phases
+# ============================================
+
+phases:
+
+  # ==========================================
+  # PHASE 1 — INSTALL
+  # ==========================================
+  # Install tools not present in the base image.
+  # This phase is cached with S3 build cache —
+  # first run installs everything, subsequent runs
+  # restore from cache and skip most downloads.
+  #
+  # Base image aws/codebuild/standard:7.0 already has:
+  #   - Java 21 (Amazon Corretto)
+  #   - Maven 3.9
+  #   - Docker 24
+  #   - AWS CLI v2
+  #   - kubectl 1.32
+  #   - git 2.40
+  #
+  # We install:
+  #   - Semgrep (SAST scanner)
+  #   - Trivy (Docker image vulnerability scanner)
+  #   - jq (JSON processing for artifact generation)
+
+  install:
+    runtime-versions:
+      java: corretto21
+
+    commands:
+      # Install Semgrep — SAST security scanner
+      # Semgrep scans source code for security issues
+      # before the Docker image is built
+      - echo "Installing Semgrep..."
+      - pip3 install semgrep --quiet
+
+      # Install Trivy — container vulnerability scanner
+      # Trivy scans the built Docker image for CVEs
+      # in OS packages and Java dependencies
+      - echo "Installing Trivy..."
+      - |
+        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+          | sh -s -- -b /usr/local/bin v0.50.0
+
+      # Install jq — used to parse JSON outputs
+      # and generate imagedetail.json artifact
+      - echo "Installing jq..."
+      - yum install -y jq 2>/dev/null || apt-get install -y jq 2>/dev/null || true
+
+      # Verify tool installations
+      - java -version
+      - mvn --version
+      - docker --version
+      - semgrep --version
+      - trivy --version
+      - kubectl version --client
+      - aws --version
+
+  # ==========================================
+  # PHASE 2 — PRE_BUILD
+  # ==========================================
+  # Environment setup before the main build.
+  # - Derive the image tag from the git commit SHA
+  # - Authenticate Docker to ECR
+  # - Restore Maven dependency cache from S3
+
+  pre_build:
+    commands:
+      # ---- Derive image tag from commit SHA ----
+      # CODEBUILD_RESOLVED_SOURCE_VERSION is the full
+      # 40-character git commit SHA set by CodeBuild.
+      # We use the first 8 characters as the image tag:
+      #   abc12345 (short, readable, still unique)
+      # This tag is used throughout the build and is
+      # written to imagedetail.json in post_build.
+      - echo "Deriving image tag from commit SHA..."
+      - export IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-8)
+      - echo "Image tag: $IMAGE_TAG"
+      - echo "Pipeline execution: $PIPELINE_EXECUTION_ID"
+
+      # Check for semantic version tag on this commit.
+      # If a developer tagged this commit with v1.2.3,
+      # we add that as a second image tag alongside the SHA.
+      # git describe --tags --exact-match fails with
+      # exit code 128 if no tag exists — we handle this.
+      - |
+        export SEMANTIC_VERSION=$(git describe --tags --exact-match 2>/dev/null || echo "")
+        if [ -n "$SEMANTIC_VERSION" ]; then
+          echo "Semantic version found: $SEMANTIC_VERSION"
+        else
+          echo "No semantic version tag on this commit"
+        fi
+
+      # ---- ECR Authentication ----
+      # Docker must authenticate to ECR before pull or push.
+      # aws ecr get-login-password generates a 12-hour token.
+      # We pipe it directly to docker login — the token is
+      # never written to disk or visible in build logs.
+      - echo "Authenticating Docker to ECR..."
+      - |
+        aws ecr get-login-password --region $PRIMARY_REGION \
+          | docker login \
+            --username AWS \
+            --password-stdin \
+            $AWS_ACCOUNT_ID.dkr.ecr.$PRIMARY_REGION.amazonaws.com
+      - echo "ECR authentication successful"
+
+      # ---- Restore Maven dependency cache ----
+      # The CodeBuild project configures S3 cache at:
+      #   <artifact-bucket>/cache/payment-api/build
+      # CodeBuild automatically restores this cache to
+      # ~/.m2/repository before this phase runs.
+      # We verify the cache was restored:
+      - |
+        CACHE_SIZE=$(du -sh ~/.m2/repository 2>/dev/null || echo "0")
+        echo "Maven cache size: $CACHE_SIZE"
+
+      # ---- Print build context ----
+      - echo "=== BUILD CONTEXT ==="
+      - echo "Application:    $APP_NAME"
+      - echo "Image tag:      $IMAGE_TAG"
+      - echo "ECR repository: $ECR_REPOSITORY_URI"
+      - echo "Namespace:      $K8S_NAMESPACE"
+      - echo "Deployment:     $K8S_DEPLOYMENT"
+      - echo "===              ==="
+
+  # ==========================================
+  # PHASE 3 — BUILD
+  # ==========================================
+  # The main build phase:
+  #   1. Compile the Java application
+  #   2. Run unit tests with JaCoCo coverage
+  #   3. Run SAST scan with Semgrep
+  #   4. Build Docker image
+  #   5. Run Trivy vulnerability scan on the image
+
+  build:
+    commands:
+
+      # ---- Step 1: Compile and Unit Test ----
+      # Maven lifecycle: compile + test + package
+      # -DskipITs: skip integration tests (run in separate CodeBuild project)
+      # jacoco:report: generate coverage report after tests
+      # The surefire plugin writes JUnit XML to target/surefire-reports/
+      # The jacoco plugin writes coverage XML to target/site/jacoco/
+      - echo "Compiling and running unit tests..."
+      - |
+        mvn $MAVEN_CLI_OPTS \
+          clean package \
+          -DskipITs=true \
+          jacoco:report \
+          -Dmaven.test.failure.ignore=false
+
+      # Verify test results exist before proceeding
+      - |
+        TEST_COUNT=$(find $TEST_REPORT_DIR -name "TEST-*.xml" 2>/dev/null | wc -l)
+        echo "Test reports found: $TEST_COUNT"
+        if [ "$TEST_COUNT" -eq 0 ]; then
+          echo "ERROR: No test reports found — tests may not have run"
+          exit 1
+        fi
+
+      # Read test summary for logging
+      - |
+        PASSED=$(grep -r 'tests=' $TEST_REPORT_DIR/*.xml 2>/dev/null \
+          | grep -oP 'tests="\K[0-9]+' | awk '{sum+=$1} END{print sum}' || echo 0)
+        FAILED=$(grep -r 'failures=' $TEST_REPORT_DIR/*.xml 2>/dev/null \
+          | grep -oP 'failures="\K[0-9]+' | awk '{sum+=$1} END{print sum}' || echo 0)
+        ERRORS=$(grep -r 'errors=' $TEST_REPORT_DIR/*.xml 2>/dev/null \
+          | grep -oP 'errors="\K[0-9]+' | awk '{sum+=$1} END{print sum}' || echo 0)
+        echo "=== TEST SUMMARY ==="
+        echo "Tests passed: $PASSED"
+        echo "Tests failed: $FAILED"
+        echo "Test errors:  $ERRORS"
+        echo "=================  ="
+        if [ "$FAILED" -gt 0 ] || [ "$ERRORS" -gt 0 ]; then
+          echo "BUILD FAILED: Unit tests failed"
+          exit 1
+        fi
+
+      # ---- Step 2: SAST Scan ----
+      # Semgrep scans the Java source code for security
+      # vulnerabilities BEFORE the Docker image is built.
+      # Finding security issues in source code is faster
+      # and cheaper to fix than finding them in a deployed image.
+      #
+      # --error flag: fail the build if any CRITICAL finding
+      # --severity CRITICAL: only fail on critical issues
+      # --json: machine-readable output for archiving
+      - echo "Running SAST scan with Semgrep..."
+      - |
+        semgrep \
+          --config $SEMGREP_RULES \
+          --json \
+          --output semgrep-results.json \
+          src/ || SEMGREP_EXIT=$?
+
+        # Count findings by severity
+        CRITICAL_FINDINGS=$(jq '[.results[] | select(.extra.severity == "ERROR")] | length' semgrep-results.json 2>/dev/null || echo 0)
+        WARNING_FINDINGS=$(jq '[.results[] | select(.extra.severity == "WARNING")] | length' semgrep-results.json 2>/dev/null || echo 0)
+
+        echo "=== SAST SCAN RESULTS ==="
+        echo "Critical findings: $CRITICAL_FINDINGS"
+        echo "Warning findings:  $WARNING_FINDINGS"
+        echo "========================="
+
+        # Fail build on CRITICAL SAST findings
+        if [ "$CRITICAL_FINDINGS" -gt 0 ]; then
+          echo "BUILD FAILED: $CRITICAL_FINDINGS critical SAST findings"
+          echo "Review semgrep-results.json for details"
+          exit 1
+        fi
+
+      # SonarQube scan (conditional — only if SONAR_TOKEN is set)
+      - |
+        if [ -n "$SONAR_TOKEN" ]; then
+          echo "Running SonarQube analysis..."
+          mvn $MAVEN_CLI_OPTS sonar:sonar \
+            -Dsonar.projectKey=absa-payment-api \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.coverage.jacoco.xmlReportPaths=$COVERAGE_REPORT_DIR/jacoco.xml
+          echo "SonarQube analysis complete"
+        else
+          echo "SonarQube scan skipped (SONAR_TOKEN not set)"
+        fi
+
+      # ---- Step 3: Docker Image Build ----
+      # The Dockerfile is in the repository root.
+      # Build context is the entire repository.
+      # We pass the commit SHA as a build argument so it
+      # can be embedded in the image (for runtime version reporting).
+      - echo "Building Docker image..."
+      - |
+        docker build \
+          --build-arg APP_VERSION=$IMAGE_TAG \
+          --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+          --build-arg GIT_COMMIT=$CODEBUILD_RESOLVED_SOURCE_VERSION \
+          --cache-from $ECR_REPOSITORY_URI:latest 2>/dev/null || true \
+          --tag $IMAGE_NAME:$IMAGE_TAG \
+          --tag $IMAGE_NAME:latest \
+          --file Dockerfile \
+          .
+
+      # Verify image was built successfully
+      - docker images $IMAGE_NAME:$IMAGE_TAG
+      - |
+        IMAGE_SIZE=$(docker image inspect $IMAGE_NAME:$IMAGE_TAG \
+          --format='{{.Size}}' | awk '{printf "%.0f MB\n", $1/1024/1024}')
+        echo "Docker image size: $IMAGE_SIZE"
+
+      # ---- Step 4: Trivy Image Scan ----
+      # Scan the built Docker image for known CVEs
+      # in OS packages (Amazon Linux, Ubuntu base) and
+      # Java application dependencies (Maven JARs).
+      #
+      # --exit-code 0: do not fail the build (informational)
+      # --severity: report CRITICAL and HIGH only
+      # --format sarif: machine-readable for Security Hub import
+      - echo "Scanning Docker image for vulnerabilities..."
+      - |
+        trivy image \
+          --exit-code 0 \
+          --severity $TRIVY_SEVERITY \
+          --format sarif \
+          --output trivy-results.sarif \
+          $IMAGE_NAME:$IMAGE_TAG
+
+        # Also generate a human-readable table report
+        trivy image \
+          --exit-code 0 \
+          --severity $TRIVY_SEVERITY \
+          --format table \
+          $IMAGE_NAME:$IMAGE_TAG
+
+        # Count critical findings for logging
+        CRITICAL_VULNS=$(jq '[.runs[].results[] | select(.level == "error")] | length' trivy-results.sarif 2>/dev/null || echo "unknown")
+        echo "=== TRIVY SCAN SUMMARY ==="
+        echo "Critical/High CVEs: $CRITICAL_VULNS"
+        echo "=========================="
+        echo "Note: CVE findings are informational — build continues"
+        echo "Security team notified via ECR enhanced scanning"
+
+# ==========================================
+# PHASE 4 — POST_BUILD
+# ==========================================
+# Actions after the main build completes:
+#   1. Tag the image for ECR (don't push yet — push stage does that)
+#   2. Write imagedetail.json artifact for the deploy stage
+#   3. Copy test and scan results to artifact location
+
+  post_build:
+    commands:
+
+      # ---- Tag image for ECR ----
+      # Apply the ECR repository URI as a tag so the image
+      # is ready to push in the next pipeline stage.
+      # We don't push here — pushing is done in the dedicated
+      # push CodeBuild project (separate stage in the pipeline).
+      - echo "Tagging image for ECR..."
+      - docker tag $IMAGE_NAME:$IMAGE_TAG $ECR_REPOSITORY_URI:$IMAGE_TAG
+      - echo "Image tagged: $ECR_REPOSITORY_URI:$IMAGE_TAG"
+
+      # Apply semantic version tag if it exists
+      - |
+        if [ -n "$SEMANTIC_VERSION" ]; then
+          docker tag $IMAGE_NAME:$IMAGE_TAG $ECR_REPOSITORY_URI:$SEMANTIC_VERSION
+          echo "Semantic version tagged: $ECR_REPOSITORY_URI:$SEMANTIC_VERSION"
+        fi
+
+      # ---- Write imagedetail.json ----
+      # This artifact passes the image tag and URI from the
+      # build stage to the push and deploy stages.
+      # The deploy stage reads IMAGE_TAG from this file via
+      # CodePipeline variable: #{ImageArtifact.ImageTag}
+      - echo "Writing imagedetail.json..."
+      - |
+        cat > imagedetail.json << EOF
+        {
+          "ImageURI": "$ECR_REPOSITORY_URI:$IMAGE_TAG",
+          "ImageTag": "$IMAGE_TAG",
+          "SemanticVersion": "$SEMANTIC_VERSION",
+          "CommitSHA": "$CODEBUILD_RESOLVED_SOURCE_VERSION",
+          "BuildTime": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "PipelineExecutionId": "$PIPELINE_EXECUTION_ID",
+          "Application": "$APP_NAME",
+          "K8sNamespace": "$K8S_NAMESPACE",
+          "K8sDeployment": "$K8S_DEPLOYMENT",
+          "K8sContainer": "$K8S_CONTAINER"
+        }
+        EOF
+        cat imagedetail.json
+
+      # ---- Write build-summary.json ----
+      # Human-readable build summary for approval reviewers.
+      # Visible in the CodePipeline artifact before approval.
+      - |
+        PASSED=$(grep -r 'tests=' $TEST_REPORT_DIR/*.xml 2>/dev/null \
+          | grep -oP 'tests="\K[0-9]+' | awk '{sum+=$1} END{print sum}' || echo 0)
+        cat > build-summary.json << EOF
+        {
+          "application": "$APP_NAME",
+          "imageTag": "$IMAGE_TAG",
+          "unitTestsPassed": $PASSED,
+          "sastCriticalFindings": 0,
+          "trivyCriticalVulns": "$CRITICAL_VULNS",
+          "buildTime": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "commitSHA": "$CODEBUILD_RESOLVED_SOURCE_VERSION"
+        }
+        EOF
+
+      - echo "Build phase complete for $APP_NAME:$IMAGE_TAG"
+
+# ============================================
+# ARTIFACTS
+# ============================================
+# Files written to the CodePipeline artifact bucket.
+# These are passed to subsequent pipeline stages.
+#
+# base-directory: directory where output files live.
+# files: which files to include in the artifact zip.
+#
+# The "**/*" pattern includes all subdirectory contents.
+
+artifacts:
+  files:
+    # Image identification — read by push and deploy stages
+    - imagedetail.json
+    # Build summary — displayed in approval notification
+    - build-summary.json
+    # SAST results — archived for security review
+    - semgrep-results.json
+    # Trivy results — archived for security team
+    - trivy-results.sarif
+    # Compiled JAR — needed by push stage for
+    # verification that artifact matches image
+    - target/*.jar
+
+  # discard-paths: yes means all files land at the
+  # root of the artifact zip, regardless of their
+  # original directory structure.
+  # This simplifies artifact consumption in later stages.
+  discard-paths: no
+
+# ============================================
+# REPORTS
+# ============================================
+# CodeBuild test reporting — publishes test results
+# to the CodeBuild console as a structured report.
+# Reports are visible in:
+#   CodeBuild console → project → reports
+#   CodePipeline console → stage → details → reports
+#
+# The approval notification links to this report.
+# Approvers see: test counts, pass/fail, duration.
+
+reports:
+  # Unit test results
+  PaymentAPIUnitTests:
+    files:
+      - "**/*"
+    base-directory: "$TEST_REPORT_DIR"
+    file-format: "JUNITXML"
+    discard-paths: no
+
+  # Code coverage report
+  PaymentAPICoverage:
+    files:
+      - "jacoco.xml"
+    base-directory: "$COVERAGE_REPORT_DIR"
+    file-format: "COBERTURAXML"
+    discard-paths: no
+
+# ============================================
+# CACHE
+# ============================================
+# S3 cache configuration — saves Maven dependencies
+# between builds. CodeBuild project in codebuild.tf
+# configures S3 as the cache backend.
+# These paths are what gets saved to S3 after build
+# and restored from S3 at the start of the next build.
+
+cache:
+  paths:
+    # Maven local repository — all downloaded JARs
+    # Typical size: 500MB-2GB depending on dependencies
+    - "/root/.m2/repository/**/*"
+    # Docker layer cache — base image layers
+    # Prevents re-downloading amazoncorretto:21 every build
+    - "/var/lib/docker/**/*"

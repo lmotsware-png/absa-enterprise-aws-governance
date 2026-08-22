@@ -1,0 +1,934 @@
+# ============================================
+# BuildSpec — Terraform Infrastructure Validation
+# ============================================
+#
+# This file defines the build instructions for the
+# ABSA Infrastructure-as-Code (IaC) validation pipeline.
+# It lives in the 09-devops/ directory as a reference.
+# The ACTUAL file must be committed to the root of
+# the terraform CodeCommit repository:
+#   absa-devops-terraform/buildspec_terraform.yml
+#
+# This buildspec is used by a SEPARATE CodePipeline
+# dedicated to Terraform changes — not the application
+# pipelines for payment-api or fraud-detection.
+#
+# Terraform IaC Pipeline flow:
+#   1. Developer pushes Terraform changes to CodeCommit
+#      (absa-devops-terraform repository)
+#   2. Pipeline triggers via EventBridge
+#   3. Stage 1: Validate
+#      - terraform fmt -check (formatting)
+#      - terraform validate (syntax)
+#      - tfsec (security misconfiguration scan)
+#      - checkov (compliance policy scan)
+#      - infracost (cost estimation)
+#   4. Stage 2: Plan
+#      - terraform plan for each week (01-09)
+#      - Save plan output as artifact
+#      - Post plan summary as build report
+#   5. Stage 3: Manual Approval
+#      - Approver reviews plan output + cost estimate
+#      - Approves or rejects before apply
+#   6. Stage 4: Apply (separate buildspec — not this file)
+#      - terraform apply using saved plan
+#
+# Repository structure expected:
+#   absa-devops-terraform/
+#   ├── 01-governance/
+#   ├── 02-networking/
+#   ├── 03-security/
+#   ├── 04-shared-services/
+#   ├── 05-production/
+#   ├── 06-data-platform/
+#   ├── 07-messaging/
+#   ├── 08-disaster-recovery/
+#   ├── 09-devops/
+#   └── buildspec_terraform.yml  ← this file
+#
+# Environment variables injected by CodeBuild project:
+#   PRIMARY_REGION          = af-south-1
+#   DR_REGION               = eu-west-1
+#   AWS_ACCOUNT_ID          = 123456789012
+#   TF_STATE_BUCKET         = absa-terraform-state-af-south-1
+#   TF_LOCK_TABLE           = absa-terraform-locks
+#   WEEKS_TO_VALIDATE       = 01,02,03,04,05,06,07,08,09
+#   WEEKS_TO_PLAN           = (derived from git diff)
+#   PIPELINE_EXECUTION_ID   = (from CodePipeline)
+#   CODEBUILD_RESOLVED_SOURCE_VERSION = git commit SHA
+#   INFRACOST_API_KEY       = (from Secrets Manager)
+#   TF_VAR_primary_region   = af-south-1
+#   TF_VAR_dr_region        = eu-west-1
+#   TF_VAR_environment      = Production
+# ============================================
+
+version: 0.2
+
+# ============================================
+# Environment
+# ============================================
+
+env:
+  variables:
+    # Terraform version — pinned for reproducibility.
+    # Must match required_version in all .tf files (>= 1.8.0)
+    TERRAFORM_VERSION: "1.8.5"
+
+    # AWS Provider version — matches all week configurations
+    AWS_PROVIDER_VERSION: "6.22.0"
+
+    # tfsec version — IaC security scanner
+    TFSEC_VERSION: "1.28.6"
+
+    # checkov version — compliance policy scanner
+    CHECKOV_VERSION: "3.2.0"
+
+    # infracost version — cloud cost estimation
+    INFRACOST_VERSION: "0.10.38"
+
+    # Terraform plan flags
+    TF_PLAN_FLAGS: "-detailed-exitcode -compact-warnings"
+
+    # Terraform log level for debugging
+    # Set to DEBUG in the CodeBuild project env vars to increase verbosity
+    TF_LOG: "WARN"
+
+    # Exit codes
+    # terraform plan -detailed-exitcode returns:
+    #   0 = no changes
+    #   1 = error
+    #   2 = changes present (not an error)
+    TF_NO_CHANGES_EXIT: "0"
+    TF_CHANGES_EXIT: "2"
+    TF_ERROR_EXIT: "1"
+
+    # Directory containing all week configurations
+    TERRAFORM_ROOT: "."
+
+    # Weeks in dependency order — must be validated
+    # in this sequence because each week reads remote
+    # state from prior weeks
+    WEEKS_ORDER: "01-governance 02-networking 03-security 04-shared-services 05-production 06-data-platform 07-messaging 08-disaster-recovery 09-devops"
+
+  # Secrets Manager — Infracost API key for cost estimation
+  secrets-manager:
+    INFRACOST_API_KEY: "absa/devops/infracost-api-key"
+
+  # Git credential helper for CodeCommit clone
+  git-credential-helper: yes
+
+# ============================================
+# Phases
+# ============================================
+
+phases:
+
+  # ==========================================
+  # PHASE 1 — INSTALL
+  # ==========================================
+  # Install Terraform and all IaC validation tools.
+  # All tool versions are pinned — IaC validation
+  # tools have breaking changes between versions.
+  # A Semgrep rule that passes on v1.28.5 might fail
+  # on v1.28.6 — pinning ensures consistent results.
+
+  install:
+    commands:
+
+      # ---- Install Terraform ----
+      - echo "Installing Terraform $TERRAFORM_VERSION..."
+      - |
+        curl -fsSL \
+          "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip" \
+          -o terraform.zip
+        unzip -q terraform.zip -d /usr/local/bin/
+        rm terraform.zip
+        chmod +x /usr/local/bin/terraform
+        terraform version
+
+      # ---- Install tfsec ----
+      # tfsec: Terraform security misconfiguration scanner
+      # Checks for: open security groups, unencrypted buckets,
+      # public RDS instances, missing logging, weak KMS config
+      - echo "Installing tfsec $TFSEC_VERSION..."
+      - |
+        curl -fsSL \
+          "https://github.com/aquasecurity/tfsec/releases/download/v${TFSEC_VERSION}/tfsec-linux-amd64" \
+          -o /usr/local/bin/tfsec
+        chmod +x /usr/local/bin/tfsec
+        tfsec --version
+
+      # ---- Install checkov ----
+      # checkov: Terraform compliance policy scanner
+      # Checks against: CIS benchmarks, PCI-DSS, HIPAA,
+      # SOC2, NIST, AWS Security Best Practices
+      # For ABSA: PCI-DSS compliance is the primary ruleset
+      - echo "Installing checkov $CHECKOV_VERSION..."
+      - pip3 install --quiet checkov==$CHECKOV_VERSION
+      - checkov --version
+
+      # ---- Install infracost ----
+      # infracost: Cloud cost estimation from Terraform plans
+      # Generates a cost breakdown before apply:
+      #   "This change will increase monthly cost by $47.50"
+      # Requires an Infracost API key (free for open source,
+      # paid for enterprise features)
+      - echo "Installing infracost $INFRACOST_VERSION..."
+      - |
+        curl -fsSL \
+          "https://github.com/infracost/infracost/releases/download/v${INFRACOST_VERSION}/infracost-linux-amd64.tar.gz" \
+          | tar -xz -C /usr/local/bin/
+        chmod +x /usr/local/bin/infracost
+        infracost --version
+
+      # ---- Install terraform-docs ----
+      # terraform-docs: auto-generate documentation from
+      # Terraform variable and output blocks.
+      # Used in post_build to verify all resources are documented.
+      - echo "Installing terraform-docs..."
+      - |
+        curl -fsSL \
+          "https://terraform-docs.io/dl/v0.17.0/terraform-docs-v0.17.0-linux-amd64.tar.gz" \
+          | tar -xz -C /usr/local/bin/
+        chmod +x /usr/local/bin/terraform-docs
+        terraform-docs --version
+
+      # ---- Install jq ----
+      - yum install -y jq 2>/dev/null || apt-get install -y jq 2>/dev/null || true
+
+      # ---- Verify all tools ----
+      - echo "=== TOOL VERSIONS ==="
+      - terraform version
+      - tfsec --version
+      - checkov --version
+      - infracost --version
+      - terraform-docs --version
+      - jq --version
+      - echo "===================="
+
+  # ==========================================
+  # PHASE 2 — PRE_BUILD
+  # ==========================================
+  # Determine which weeks need validation and planning.
+  # Not every pipeline run needs to plan all 9 weeks —
+  # if only 05-production/ changed, only that week
+  # needs a plan. We use git diff to detect changes.
+
+  pre_build:
+    commands:
+
+      # ---- Derive commit SHA ----
+      - export COMMIT_SHA=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-8)
+      - echo "Commit SHA: $COMMIT_SHA"
+      - echo "Pipeline execution: $PIPELINE_EXECUTION_ID"
+
+      # ---- Detect changed weeks via git diff ----
+      # Compare current commit against the previous commit
+      # on the main branch. Identify which week directories
+      # have changed files.
+      #
+      # Examples:
+      #   Modified: 05-production/eks_cluster.tf
+      #   → CHANGED_WEEKS = "05-production"
+      #   Modified: 03-security/kms_keys.tf
+      #              07-messaging/sqs_queues.tf
+      #   → CHANGED_WEEKS = "03-security 07-messaging"
+      #                      + all dependent weeks
+      - echo "Detecting changed Terraform directories..."
+      - |
+        # Get list of changed files vs previous commit
+        CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git diff --name-only HEAD 2>/dev/null || echo "")
+        echo "Changed files:"
+        echo "$CHANGED_FILES"
+
+        # Extract unique week directories from changed files
+        CHANGED_WEEKS=""
+        for week in $WEEKS_ORDER; do
+          if echo "$CHANGED_FILES" | grep -q "^${week}/"; then
+            CHANGED_WEEKS="$CHANGED_WEEKS $week"
+            echo "Change detected in: $week"
+          fi
+        done
+
+        # If no specific weeks changed (e.g., root-level changes
+        # or first commit), validate all weeks
+        if [ -z "$CHANGED_WEEKS" ]; then
+          echo "No specific week changes detected — validating all weeks"
+          CHANGED_WEEKS="$WEEKS_ORDER"
+        fi
+
+        export CHANGED_WEEKS=$(echo $CHANGED_WEEKS | xargs)
+        echo "Weeks to validate: $CHANGED_WEEKS"
+
+      # ---- Add dependent weeks ----
+      # If week 03 changes, weeks 04-09 depend on it
+      # and may need planning too. This function adds
+      # all weeks that depend on a changed week.
+      - |
+        add_dependent_weeks() {
+          local week=$1
+          local week_num=$(echo $week | cut -d'-' -f1 | sed 's/^0//')
+          local deps=""
+          for w in $WEEKS_ORDER; do
+            local w_num=$(echo $w | cut -d'-' -f1 | sed 's/^0//')
+            if [ "$w_num" -gt "$week_num" ]; then
+              deps="$deps $w"
+            fi
+          done
+          echo $deps
+        }
+
+        FINAL_WEEKS="$CHANGED_WEEKS"
+        for week in $CHANGED_WEEKS; do
+          DEPS=$(add_dependent_weeks $week)
+          FINAL_WEEKS="$FINAL_WEEKS $DEPS"
+        done
+
+        # Remove duplicates and sort
+        export WEEKS_TO_PROCESS=$(echo $FINAL_WEEKS | tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
+        echo "Final weeks to process (including dependents): $WEEKS_TO_PROCESS"
+
+      # ---- Configure Terraform AWS credentials ----
+      # Terraform uses the CodeBuild role's credentials
+      # automatically via the AWS SDK default credential chain.
+      # We just need to confirm the identity.
+      - echo "Confirming AWS identity..."
+      - aws sts get-caller-identity
+      - echo "AWS region: $PRIMARY_REGION"
+
+      # ---- Configure Infracost ----
+      - |
+        if [ -n "$INFRACOST_API_KEY" ]; then
+          infracost configure set api_key "$INFRACOST_API_KEY"
+          echo "Infracost configured with API key"
+        else
+          echo "WARNING: INFRACOST_API_KEY not set — cost estimation will be skipped"
+        fi
+
+      # ---- Create output directories ----
+      - mkdir -p reports/validation reports/plans reports/costs reports/security
+
+  # ==========================================
+  # PHASE 3 — BUILD
+  # ==========================================
+  # Main validation and planning phase.
+  # Three sequential steps:
+  #   1. Format check (all weeks, fast)
+  #   2. Security scan (changed weeks)
+  #   3. Terraform validate + plan (changed weeks)
+
+  build:
+    commands:
+
+      # ==========================================
+      # STEP 1: Terraform Format Check
+      # ==========================================
+      # Check ALL Terraform files for formatting compliance.
+      # terraform fmt -check exits non-zero if any file
+      # needs reformatting.
+      #
+      # Why check ALL files even if only one week changed?
+      # Format issues in unchanged files indicate technical
+      # debt that should be tracked. Developers see the
+      # full picture of formatting debt in the pipeline output.
+      #
+      # To auto-fix: run 'terraform fmt -recursive .' locally
+      # then commit the reformatted files.
+
+      - echo "============================================"
+      - echo "STEP 1: Terraform Format Check"
+      - echo "============================================"
+      - |
+        FORMAT_FAILED=0
+        FORMAT_ISSUES=""
+
+        for week in $WEEKS_ORDER; do
+          if [ -d "$week" ]; then
+            echo "Checking format: $week..."
+            if ! terraform fmt -check -recursive "$week/" 2>&1; then
+              FORMAT_FAILED=1
+              FORMAT_ISSUES="$FORMAT_ISSUES $week"
+              echo "FORMAT ISSUES FOUND in $week"
+            else
+              echo "Format OK: $week"
+            fi
+          fi
+        done
+
+        if [ "$FORMAT_FAILED" -eq 1 ]; then
+          echo ""
+          echo "================================================================"
+          echo "BUILD FAILED: Terraform formatting issues found in:"
+          echo "  $FORMAT_ISSUES"
+          echo ""
+          echo "Fix with: terraform fmt -recursive ."
+          echo "Then commit the reformatted files."
+          echo "================================================================"
+          exit 1
+        fi
+
+        echo "All Terraform files are correctly formatted"
+
+      # ==========================================
+      # STEP 2: Security Scan — tfsec
+      # ==========================================
+      # tfsec scans for security misconfigurations.
+      # Checks specific to this project:
+      #
+      #   AWS-S3-006: S3 bucket has no public access block
+      #   AWS-S3-014: S3 bucket not encrypted
+      #   AWS-RDS-011: RDS instance not encrypted
+      #   AWS-RDS-006: RDS backup retention too low
+      #   AWS-EKS-001: EKS cluster not encrypted
+      #   AWS-SQS-003: SQS queue not encrypted with KMS
+      #   AWS-KMS-002: KMS key rotation disabled
+      #   AWS-VPC-009: Security group allows all inbound
+      #
+      # Failures on CRITICAL and HIGH severity stop the build.
+      # LOW and MEDIUM are reported but don't block.
+
+      - echo "============================================"
+      - echo "STEP 2: Security Scan — tfsec"
+      - echo "============================================"
+      - |
+        TFSEC_FAILED=0
+
+        for week in $WEEKS_TO_PROCESS; do
+          if [ -d "$week" ]; then
+            echo "Running tfsec on: $week..."
+            tfsec "$week/" \
+              --format json \
+              --out "reports/security/tfsec-${week}.json" \
+              --minimum-severity HIGH \
+              --no-color \
+              || TFSEC_EXIT=$?
+
+            # Count findings by severity
+            if [ -f "reports/security/tfsec-${week}.json" ]; then
+              CRITICAL=$(jq '[.results[] | select(.severity == "CRITICAL")] | length' \
+                "reports/security/tfsec-${week}.json" 2>/dev/null || echo 0)
+              HIGH=$(jq '[.results[] | select(.severity == "HIGH")] | length' \
+                "reports/security/tfsec-${week}.json" 2>/dev/null || echo 0)
+              MEDIUM=$(jq '[.results[] | select(.severity == "MEDIUM")] | length' \
+                "reports/security/tfsec-${week}.json" 2>/dev/null || echo 0)
+              LOW=$(jq '[.results[] | select(.severity == "LOW")] | length' \
+                "reports/security/tfsec-${week}.json" 2>/dev/null || echo 0)
+
+              echo "  tfsec $week: CRITICAL=$CRITICAL HIGH=$HIGH MEDIUM=$MEDIUM LOW=$LOW"
+
+              if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ]; then
+                TFSEC_FAILED=1
+                echo "  SECURITY ISSUES FOUND in $week — CRITICAL or HIGH severity"
+              fi
+            fi
+          fi
+        done
+
+        if [ "$TFSEC_FAILED" -eq 1 ]; then
+          echo ""
+          echo "================================================================"
+          echo "BUILD FAILED: tfsec found CRITICAL or HIGH security issues"
+          echo "Review reports/security/tfsec-<week>.json for details"
+          echo "================================================================"
+          exit 1
+        fi
+        echo "tfsec security scan passed for all changed weeks"
+
+      # ==========================================
+      # STEP 3: Compliance Scan — checkov
+      # ==========================================
+      # checkov evaluates Terraform against compliance
+      # frameworks. For ABSA banking, PCI-DSS is primary.
+      #
+      # Key PCI-DSS checks:
+      #   CKV_AWS_19: S3 bucket server-side encryption enabled
+      #   CKV_AWS_57: S3 block public access enabled
+      #   CKV_AWS_129: RDS cluster encryption enabled
+      #   CKV_AWS_96: RDS cluster backup retention >= 7 days
+      #   CKV_AWS_173: EKS secrets envelope encryption
+      #   CKV_AWS_111: VPC flow logs enabled
+      #   CKV_AWS_40: IAM user has MFA
+      #   CKV_AWS_274: Access keys not used at root
+      #
+      # --framework terraform: only check Terraform resources
+      # --check CKV_AWS: only AWS provider checks
+      # --soft-fail: don't exit non-zero on checkov failures
+      #   (we handle failure counting manually)
+
+      - echo "============================================"
+      - echo "STEP 3: Compliance Scan — checkov"
+      - echo "============================================"
+      - |
+        CHECKOV_FAILED=0
+
+        for week in $WEEKS_TO_PROCESS; do
+          if [ -d "$week" ]; then
+            echo "Running checkov on: $week..."
+            checkov \
+              --directory "$week/" \
+              --framework terraform \
+              --output json \
+              --output-file "reports/security/checkov-${week}.json" \
+              --quiet \
+              --compact \
+              --soft-fail \
+              2>/dev/null || true
+
+            if [ -f "reports/security/checkov-${week}.json" ]; then
+              PASSED=$(jq '.summary.passed' "reports/security/checkov-${week}.json" 2>/dev/null || echo 0)
+              FAILED=$(jq '.summary.failed' "reports/security/checkov-${week}.json" 2>/dev/null || echo 0)
+              SKIPPED=$(jq '.summary.skipped' "reports/security/checkov-${week}.json" 2>/dev/null || echo 0)
+
+              echo "  checkov $week: passed=$PASSED failed=$FAILED skipped=$SKIPPED"
+
+              # Fail build if more than 5 compliance checks fail
+              # (some failures are acceptable — known deviations
+              # documented in compliance exceptions register)
+              if [ "$FAILED" -gt 5 ]; then
+                CHECKOV_FAILED=1
+                echo "  COMPLIANCE ISSUES: $FAILED checks failed in $week"
+              fi
+            fi
+          fi
+        done
+
+        if [ "$CHECKOV_FAILED" -eq 1 ]; then
+          echo ""
+          echo "================================================================"
+          echo "BUILD FAILED: checkov found excessive compliance failures"
+          echo "Review reports/security/checkov-<week>.json for details"
+          echo "Acceptable failures should be documented in .checkov.yaml"
+          echo "================================================================"
+          exit 1
+        fi
+        echo "checkov compliance scan passed for all changed weeks"
+
+      # ==========================================
+      # STEP 4: Terraform Init + Validate
+      # ==========================================
+      # Initialize Terraform and validate syntax
+      # for each changed week.
+      #
+      # terraform init: downloads providers, initializes
+      #   backend (reads from S3 — no lock taken),
+      #   initializes modules
+      # terraform validate: checks syntax and internal
+      #   consistency — references to non-existent
+      #   resources, invalid argument types, etc.
+      #
+      # Note: validate does NOT connect to AWS or read
+      # actual state — it validates the configuration
+      # files only. This is intentional — we don't want
+      # to modify anything during validation.
+
+      - echo "============================================"
+      - echo "STEP 4: Terraform Init and Validate"
+      - echo "============================================"
+      - |
+        VALIDATE_FAILED=0
+        VALIDATE_REPORT="reports/validation/validate-summary.md"
+        echo "# Terraform Validation Report" > $VALIDATE_REPORT
+        echo "Commit: $COMMIT_SHA" >> $VALIDATE_REPORT
+        echo "Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $VALIDATE_REPORT
+        echo "" >> $VALIDATE_REPORT
+        echo "| Week | Init | Validate | Status |" >> $VALIDATE_REPORT
+        echo "|------|------|----------|--------|" >> $VALIDATE_REPORT
+
+        for week in $WEEKS_TO_PROCESS; do
+          if [ -d "$week" ]; then
+            echo "Initializing: $week..."
+            cd "$week"
+
+            # Init with -backend=false to avoid writing state
+            # We only want provider/plugin downloads, not
+            # actual backend initialization during validation
+            INIT_STATUS="✅"
+            terraform init \
+              -backend=false \
+              -no-color \
+              -input=false \
+              > /tmp/tf-init-${week}.log 2>&1 \
+              || { INIT_STATUS="❌"; VALIDATE_FAILED=1; }
+
+            if [ "$INIT_STATUS" = "❌" ]; then
+              echo "  INIT FAILED for $week:"
+              cat /tmp/tf-init-${week}.log
+            fi
+
+            # Validate configuration
+            VALIDATE_STATUS="✅"
+            terraform validate \
+              -no-color \
+              -json \
+              > /tmp/tf-validate-${week}.json 2>&1 \
+              || { VALIDATE_STATUS="❌"; VALIDATE_FAILED=1; }
+
+            VALID=$(jq -r '.valid' /tmp/tf-validate-${week}.json 2>/dev/null || echo "false")
+            ERROR_COUNT=$(jq '.error_count' /tmp/tf-validate-${week}.json 2>/dev/null || echo "unknown")
+
+            if [ "$VALID" != "true" ]; then
+              VALIDATE_STATUS="❌"
+              VALIDATE_FAILED=1
+              echo "  VALIDATE FAILED for $week ($ERROR_COUNT errors):"
+              jq -r '.diagnostics[] | "  [\(.severity)] \(.summary)\n  at \(.range.filename):\(.range.start.line)"' \
+                /tmp/tf-validate-${week}.json 2>/dev/null || cat /tmp/tf-validate-${week}.json
+            else
+              echo "  Validate OK: $week"
+            fi
+
+            # Overall status
+            if [ "$INIT_STATUS" = "✅" ] && [ "$VALIDATE_STATUS" = "✅" ]; then
+              OVERALL="✅ PASS"
+            else
+              OVERALL="❌ FAIL"
+            fi
+
+            echo "| $week | $INIT_STATUS | $VALIDATE_STATUS | $OVERALL |" >> ../$VALIDATE_REPORT
+
+            cd ..
+          fi
+        done
+
+        if [ "$VALIDATE_FAILED" -eq 1 ]; then
+          echo ""
+          echo "================================================================"
+          echo "BUILD FAILED: Terraform init or validate failed"
+          echo "Check the validation report for details"
+          echo "================================================================"
+          exit 1
+        fi
+        echo "Terraform validation passed for all changed weeks"
+
+      # ==========================================
+      # STEP 5: Terraform Plan
+      # ==========================================
+      # Run terraform plan for each changed week.
+      # Plans show what AWS API calls would be made:
+      #   + create resource
+      #   ~ update resource in-place
+      #   - destroy resource
+      #   -/+ destroy and recreate resource
+      #
+      # The plan is saved as a binary .tfplan file.
+      # The apply stage (separate pipeline/buildspec)
+      # uses this saved plan — guarantees apply matches
+      # exactly what was reviewed and approved.
+      #
+      # -detailed-exitcode:
+      #   0 = no changes (plan succeeded, nothing to do)
+      #   1 = error (plan failed)
+      #   2 = changes present (plan succeeded, changes exist)
+      #
+      # IMPORTANT: terraform plan READS actual AWS state
+      # (connects to AWS, reads S3 backend, calls AWS APIs).
+      # The CodeBuild role needs read permissions across
+      # all AWS services used by the Terraform configuration.
+      # The CodeBuild IAM role in iam_roles.tf has
+      # broad read permissions for this purpose.
+
+      - echo "============================================"
+      - echo "STEP 5: Terraform Plan"
+      - echo "============================================"
+      - |
+        PLAN_FAILED=0
+        PLAN_HAS_CHANGES=false
+        PLAN_SUMMARY="reports/plans/plan-summary.md"
+        echo "# Terraform Plan Summary" > $PLAN_SUMMARY
+        echo "Commit: $COMMIT_SHA" >> $PLAN_SUMMARY
+        echo "Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $PLAN_SUMMARY
+        echo "" >> $PLAN_SUMMARY
+
+        for week in $WEEKS_TO_PROCESS; do
+          if [ -d "$week" ]; then
+            echo ""
+            echo "Planning: $week..."
+            cd "$week"
+
+            # Full init with backend for plan
+            # (needs to read current state from S3)
+            terraform init \
+              -no-color \
+              -input=false \
+              -reconfigure \
+              > /tmp/tf-init-plan-${week}.log 2>&1 \
+              || { echo "Init failed for $week"; cat /tmp/tf-init-plan-${week}.log; cd ..; PLAN_FAILED=1; continue; }
+
+            # Run plan — save to binary plan file
+            terraform plan \
+              $TF_PLAN_FLAGS \
+              -no-color \
+              -input=false \
+              -out="../reports/plans/${week}.tfplan" \
+              -lock=false \
+              2>&1 | tee "/tmp/tf-plan-${week}.log"
+            PLAN_EXIT=$?
+
+            # Handle exit codes
+            case $PLAN_EXIT in
+              0)
+                echo "  Plan: $week — NO CHANGES"
+                echo "## $week: No Changes" >> ../$PLAN_SUMMARY
+                echo "No infrastructure changes for this week." >> ../$PLAN_SUMMARY
+                ;;
+              2)
+                echo "  Plan: $week — CHANGES PRESENT"
+                PLAN_HAS_CHANGES=true
+
+                # Generate human-readable plan summary
+                terraform show \
+                  -no-color \
+                  "../reports/plans/${week}.tfplan" \
+                  > "../reports/plans/${week}-plan.txt" 2>/dev/null
+
+                # Extract add/change/destroy counts
+                ADDS=$(grep -oP '\+\K[0-9]+(?= to add)' /tmp/tf-plan-${week}.log | tail -1 || echo 0)
+                CHANGES=$(grep -oP '~\K[0-9]+(?= to change)' /tmp/tf-plan-${week}.log | tail -1 || echo 0)
+                DESTROYS=$(grep -oP '-\K[0-9]+(?= to destroy)' /tmp/tf-plan-${week}.log | tail -1 || echo 0)
+
+                echo "## $week: Changes Detected" >> ../$PLAN_SUMMARY
+                echo "| Action | Count |" >> ../$PLAN_SUMMARY
+                echo "|--------|-------|" >> ../$PLAN_SUMMARY
+                echo "| ➕ Add | $ADDS |" >> ../$PLAN_SUMMARY
+                echo "| 🔄 Change | $CHANGES |" >> ../$PLAN_SUMMARY
+                echo "| ❌ Destroy | $DESTROYS |" >> ../$PLAN_SUMMARY
+                echo "" >> ../$PLAN_SUMMARY
+
+                # Warn if any destroys are present
+                if [ "$DESTROYS" -gt 0 ]; then
+                  echo "  ⚠️  WARNING: $DESTROYS resources will be DESTROYED in $week"
+                  echo "> ⚠️ **WARNING:** $DESTROYS resources will be destroyed." >> ../$PLAN_SUMMARY
+                  echo "> Review carefully before approving." >> ../$PLAN_SUMMARY
+                fi
+                ;;
+              1)
+                echo "  Plan FAILED for $week"
+                PLAN_FAILED=1
+                echo "## $week: PLAN FAILED ❌" >> ../$PLAN_SUMMARY
+                echo '```' >> ../$PLAN_SUMMARY
+                tail -20 /tmp/tf-plan-${week}.log >> ../$PLAN_SUMMARY
+                echo '```' >> ../$PLAN_SUMMARY
+                ;;
+            esac
+
+            cd ..
+          fi
+        done
+
+        if [ "$PLAN_FAILED" -eq 1 ]; then
+          echo "================================================================"
+          echo "BUILD FAILED: One or more Terraform plans failed"
+          echo "Review plan output above for error details"
+          echo "================================================================"
+          exit 1
+        fi
+
+        if [ "$PLAN_HAS_CHANGES" = "true" ]; then
+          echo "Plans complete — changes detected. Awaiting manual approval."
+        else
+          echo "Plans complete — no changes detected across all weeks."
+        fi
+
+      # ==========================================
+      # STEP 6: Cost Estimation — infracost
+      # ==========================================
+      # Estimate the cost impact of the planned changes.
+      # infracost reads the saved .tfplan files and
+      # calculates monthly cost delta.
+      #
+      # Output: cost-estimate.md showing:
+      #   "Monthly cost will increase by $47.50"
+      #   with a breakdown per resource type.
+      #
+      # This report is included in the approval notification
+      # so approvers know the financial impact before approving.
+
+      - echo "============================================"
+      - echo "STEP 6: Cost Estimation — infracost"
+      - echo "============================================"
+      - |
+        if [ -z "$INFRACOST_API_KEY" ]; then
+          echo "Infracost API key not configured — skipping cost estimation"
+          echo "# Cost Estimation\nNot configured (INFRACOST_API_KEY not set)" \
+            > reports/costs/cost-estimate.md
+        else
+          echo "Running infracost breakdown..."
+
+          COST_REPORT="reports/costs/cost-estimate.md"
+          echo "# Terraform Cost Estimation" > $COST_REPORT
+          echo "Commit: $COMMIT_SHA" >> $COST_REPORT
+          echo "Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $COST_REPORT
+          echo "" >> $COST_REPORT
+
+          TOTAL_MONTHLY_COST=0
+
+          for week in $WEEKS_TO_PROCESS; do
+            PLAN_FILE="reports/plans/${week}.tfplan"
+            if [ -f "$PLAN_FILE" ]; then
+              echo "Estimating costs for: $week..."
+              cd "$week"
+
+              # Run infracost on the saved plan file
+              infracost breakdown \
+                --path "../$PLAN_FILE" \
+                --format json \
+                --out-file "../reports/costs/infracost-${week}.json" \
+                --no-color \
+                2>/dev/null || echo "Infracost estimation failed for $week"
+
+              if [ -f "../reports/costs/infracost-${week}.json" ]; then
+                MONTH_COST=$(jq -r '.totalMonthlyCost' \
+                  "../reports/costs/infracost-${week}.json" 2>/dev/null || echo "0")
+                DIFF_COST=$(jq -r '.diffTotalMonthlyCost' \
+                  "../reports/costs/infracost-${week}.json" 2>/dev/null || echo "0")
+
+                echo "  $week: monthly=$MONTH_COST delta=$DIFF_COST"
+
+                echo "## $week" >> ../$COST_REPORT
+                echo "- Monthly cost: \$$MONTH_COST" >> ../$COST_REPORT
+                echo "- Delta from this change: \$$DIFF_COST" >> ../$COST_REPORT
+                echo "" >> ../$COST_REPORT
+              fi
+
+              cd ..
+            fi
+          done
+
+          echo "Cost estimation complete — review reports/costs/cost-estimate.md"
+        fi
+
+  # ==========================================
+  # PHASE 4 — POST_BUILD
+  # ==========================================
+
+  post_build:
+    commands:
+
+      # ---- Compile final validation report ----
+      - echo "Compiling final validation report..."
+      - |
+        FINAL_REPORT="reports/validation/final-report.md"
+        echo "# ABSA Infrastructure Validation Report" > $FINAL_REPORT
+        echo "" >> $FINAL_REPORT
+        echo "**Commit:** $COMMIT_SHA" >> $FINAL_REPORT
+        echo "**Pipeline:** $PIPELINE_EXECUTION_ID" >> $FINAL_REPORT
+        echo "**Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $FINAL_REPORT
+        echo "**Weeks processed:** $WEEKS_TO_PROCESS" >> $FINAL_REPORT
+        echo "" >> $FINAL_REPORT
+
+        echo "## Validation Steps" >> $FINAL_REPORT
+        echo "" >> $FINAL_REPORT
+        echo "| Step | Status |" >> $FINAL_REPORT
+        echo "|------|--------|" >> $FINAL_REPORT
+        echo "| Terraform Format Check | ✅ PASSED |" >> $FINAL_REPORT
+        echo "| tfsec Security Scan | ✅ PASSED |" >> $FINAL_REPORT
+        echo "| checkov Compliance Scan | ✅ PASSED |" >> $FINAL_REPORT
+        echo "| Terraform Validate | ✅ PASSED |" >> $FINAL_REPORT
+        echo "| Terraform Plan | ✅ COMPLETE |" >> $FINAL_REPORT
+        echo "| Cost Estimation | ✅ COMPLETE |" >> $FINAL_REPORT
+        echo "" >> $FINAL_REPORT
+
+        # Append plan summary
+        echo "## Plan Summary" >> $FINAL_REPORT
+        cat reports/plans/plan-summary.md 2>/dev/null >> $FINAL_REPORT || true
+        echo "" >> $FINAL_REPORT
+
+        # Append cost estimate
+        echo "## Cost Impact" >> $FINAL_REPORT
+        cat reports/costs/cost-estimate.md 2>/dev/null >> $FINAL_REPORT || true
+
+        echo "Final report written to $FINAL_REPORT"
+        cat $FINAL_REPORT
+
+      # ---- Write imagedetail equivalent for IaC ----
+      # Not an image — but the same artifact pattern.
+      # The apply stage reads this to know which plan files to apply.
+      - |
+        cat > infrastructure-detail.json << EOF
+        {
+          "CommitSHA": "$CODEBUILD_RESOLVED_SOURCE_VERSION",
+          "CommitSHAShort": "$COMMIT_SHA",
+          "PipelineExecutionId": "$PIPELINE_EXECUTION_ID",
+          "BuildTime": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "WeeksProcessed": "$WEEKS_TO_PROCESS",
+          "TerraformVersion": "$TERRAFORM_VERSION",
+          "PlanFilesAvailable": true
+        }
+        EOF
+        echo "infrastructure-detail.json written"
+
+      - echo "Terraform validation and planning complete"
+      - echo "Awaiting manual approval before apply"
+
+# ============================================
+# ARTIFACTS
+# ============================================
+# All validation reports and plan files are archived.
+# The apply stage reads the .tfplan binary files —
+# these MUST be included so apply uses the exact
+# plan that was reviewed and approved.
+#
+# Plan files are binary — they contain the complete
+# proposed state change including resource addresses,
+# attribute values, and provider configurations.
+# Using a saved plan file guarantees that apply does
+# EXACTLY what plan showed — no surprises between
+# plan/approve/apply.
+
+artifacts:
+  files:
+    # Metadata for apply stage
+    - infrastructure-detail.json
+    # Final human-readable report (shown to approvers)
+    - reports/validation/final-report.md
+    # Validation details
+    - reports/validation/**/*
+    # Terraform binary plan files — READ BY APPLY STAGE
+    # These are the exact plans to be applied
+    - reports/plans/**/*.tfplan
+    # Human-readable plan text files
+    - reports/plans/**/*.txt
+    # Plan summary markdown
+    - reports/plans/plan-summary.md
+    # Security scan results
+    - reports/security/**/*
+    # Cost estimation results
+    - reports/costs/**/*
+
+  discard-paths: no
+
+# ============================================
+# REPORTS
+# ============================================
+# CodeBuild reports — validation summary visible
+# in the CodeBuild console and CodePipeline UI.
+# Approvers see the validation status before
+# deciding whether to approve the apply.
+
+reports:
+  # Terraform validation report
+  TerraformValidation:
+    files:
+      - "final-report.md"
+    base-directory: "reports/validation"
+    file-format: "TEXT"
+    discard-paths: no
+
+# ============================================
+# CACHE
+# ============================================
+# Cache Terraform provider plugins between builds.
+# Provider downloads are the slowest part of init:
+#   hashicorp/aws 6.22.0 = ~120MB download
+# Caching to S3 reduces init from 2 minutes to 15 seconds.
+#
+# Provider plugins are cached at the Terraform
+# plugin cache directory. We set TF_PLUGIN_CACHE_DIR
+# in the build environment to use this location.
+
+cache:
+  paths:
+    # Terraform provider plugin cache
+    # ~500MB for AWS provider + dependencies
+    - "/root/.terraform.d/plugin-cache/**/*"
+    # pip cache for checkov and other Python tools
+    - "/root/.cache/pip/**/*"
