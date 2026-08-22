@@ -53,4 +53,8 @@ resource "aws_ec2_transit_gateway_route_table" "segments" {
 #    aws_ec2_transit_gateway_route_table.segments["hr_to_shared"]
 # 3. Reference it as:
 #    aws_ec2_transit_gateway_route_table.segments["hr_to_shared"].id
+<<<<<<< Updated upstream
 # ============================================
+=======
+# ============================================
+>>>>>>> Stashed changes

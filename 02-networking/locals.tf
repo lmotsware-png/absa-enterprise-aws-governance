@@ -32,6 +32,19 @@ locals {
     # Add more here when needed:
     # qa_to_shared       = "qa-to-shared-services"
     # hr_to_shared       = "hr-to-shared-services"
+<<<<<<< Updated upstream
+=======
+  }
+
+  # All VPCs map for iteration
+  all_vpcs = {
+    production  = aws_vpc.production
+    hr          = aws_vpc.hr
+    finance     = aws_vpc.finance
+    devops      = aws_vpc.devops
+    staging     = aws_vpc.staging
+    qa          = aws_vpc.qa
+>>>>>>> Stashed changes
   }
 
   # All VPCs map for iteration
