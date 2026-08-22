@@ -1,3 +1,25 @@
+---
+👨‍💻 Author
+Lerato Motsware
+Cloud & Network Infrastructure Engineer · AWS Solution Architecture · CCNA
+
+I bridge the gap between physical Infrastructure Architect and cloud automation — building secure, scalable, and production-grade infrastructure.
+
+🔗 Connect with Me:
+
+Email: lmotsware@gmail.com
+
+Phone: 072 653 3264
+
+LinkedIn: linkedin.com/in/lerato-motsware-83923017a
+
+YouTube: LM Cloud Architect – Watch me build this project step-by-step.
+
+My Philosophy:
+
+"Cloud does not replace networking — it automates it."
+---
+
 ## 📺 Watch Me Build This on YouTube
 
 I am teaching this project step by step on YouTube. Every video explains the code, architecture, and decisions behind each layer.
@@ -426,23 +448,6 @@ The goal is not only to understand AWS services, but to understand:
 * how security integrates into cloud operations
 
 ---
-
-# 👨‍💻 Author
-
-## Lerato Motsware
-
-**AWS | Terraform | Networking | Cloud Infrastructure**
-
-National Diploma in Electrical Engineering (Light Current) with experience supporting mission-critical networking and communication infrastructure.
-
-Focused on:
-
-* Cloud Infrastructure Engineering
-* Enterprise Networking
-* Platform Engineering
-* DevOps Automation
-* AWS Architecture
-* Infrastructure Security
 
 ---
 ## 📌 Repository Status
